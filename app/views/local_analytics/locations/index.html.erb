@@ -12,6 +12,14 @@
   <%= link_to "Cities", locations_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, dimension: "city"), class: params[:dimension] == "city" ? "active" : "" %>
 </div>
 
+<% dim = params[:dimension] || "country" %>
+<% bar_data = @report.rows.first(10).map { |r| [r.send(dim), r.visits.to_i] } %>
+<% if bar_data.any? %>
+<div class="la-panel" style="margin-bottom: 1rem;">
+  <%= la_bar_chart(data: bar_data, color: "#6f42c1") %>
+</div>
+<% end %>
+
 <div class="la-panel">
   <table>
     <thead>

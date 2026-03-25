@@ -10,14 +10,17 @@
   <div class="la-card">
     <div class="la-card-label">Unique Visitors</div>
     <div class="la-card-value"><%= number_with_delimiter(@report.total_unique_visitors) %></div>
+    <%= la_sparkline(values: @report.daily_stats.map { |d| d[:visitors] }, color: "#0d6efd") %>
   </div>
   <div class="la-card">
     <div class="la-card-label">Visits</div>
     <div class="la-card-value"><%= number_with_delimiter(@report.total_visits) %></div>
+    <%= la_sparkline(values: @report.daily_stats.map { |d| d[:visits] }, color: "#198754") %>
   </div>
   <div class="la-card">
     <div class="la-card-label">Pageviews</div>
     <div class="la-card-value"><%= number_with_delimiter(@report.total_pageviews) %></div>
+    <%= la_sparkline(values: @report.daily_stats.map { |d| d[:pageviews] }, color: "#dc3545") %>
   </div>
   <div class="la-card">
     <div class="la-card-label">Bounce Rate</div>
@@ -41,34 +44,53 @@
   </div>
 </div>
 
+<%# ── Daily trend area chart ─────────────────────────────────────── %>
 <div class="la-panel">
   <h3>Daily Trend</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th class="num">Visitors</th>
-        <th class="num">Visits</th>
-        <th class="num">Pageviews</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @report.daily_stats.each do |day| %>
+  <%= la_area_chart(
+    series: {
+      "Visitors"  => @report.daily_stats.map { |d| d[:visitors] },
+      "Visits"    => @report.daily_stats.map { |d| d[:visits] },
+      "Pageviews" => @report.daily_stats.map { |d| d[:pageviews] },
+    },
+    labels: @report.daily_stats.map { |d| d[:date].strftime("%-m/%-d") },
+    height: 260
+  ) %>
+
+  <details style="margin-top: 0.75rem;">
+    <summary style="cursor:pointer; font-size:12px; color:var(--text-muted);">Show table</summary>
+    <table style="margin-top:0.5rem;">
+      <thead>
         <tr>
-          <td><%= day[:date] %></td>
-          <td class="num"><%= number_with_delimiter(day[:visitors]) %></td>
-          <td class="num"><%= number_with_delimiter(day[:visits]) %></td>
-          <td class="num"><%= number_with_delimiter(day[:pageviews]) %></td>
+          <th>Date</th>
+          <th class="num">Visitors</th>
+          <th class="num">Visits</th>
+          <th class="num">Pageviews</th>
         </tr>
-      <% end %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% @report.daily_stats.each do |day| %>
+          <tr>
+            <td><%= day[:date] %></td>
+            <td class="num"><%= number_with_delimiter(day[:visitors]) %></td>
+            <td class="num"><%= number_with_delimiter(day[:visits]) %></td>
+            <td class="num"><%= number_with_delimiter(day[:pageviews]) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </details>
 </div>
 
+<%# ── Top pages bar chart + top referrers bar chart ──────────────── %>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
   <div class="la-panel">
     <h3>Top Pages</h3>
-    <table>
+    <% pages_data = @report.top_pages.map { |p| [p.path, p.total.to_i] } %>
+    <% if pages_data.any? %>
+      <%= la_bar_chart(data: pages_data, color: "#0d6efd") %>
+    <% end %>
+    <table style="margin-top: 0.5rem;">
       <thead>
         <tr><th>Path</th><th class="num">Views</th><th class="num">Visitors</th></tr>
       </thead>
@@ -89,7 +111,10 @@
 
   <div class="la-panel">
     <h3>Top Referrers</h3>
-    <table>
+    <% if @report.top_referrers.any? %>
+      <%= la_bar_chart(data: @report.top_referrers, color: "#198754") %>
+    <% end %>
+    <table style="margin-top: 0.5rem;">
       <thead>
         <tr><th>Source</th><th class="num">Visits</th></tr>
       </thead>

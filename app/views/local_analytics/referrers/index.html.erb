@@ -6,17 +6,23 @@
   </div>
 </div>
 
-<% if @report.by_medium.any? %>
+<% medium_data = @report.by_medium.map { |m, c| [m || "direct", c] } %>
+<% if medium_data.any? %>
 <div class="la-panel" style="margin-bottom: 1rem;">
   <h3>Traffic by Medium</h3>
-  <table>
-    <thead><tr><th>Medium</th><th class="num">Visits</th></tr></thead>
-    <tbody>
-      <% @report.by_medium.each do |medium, count| %>
-        <tr><td><%= medium || "direct" %></td><td class="num"><%= number_with_delimiter(count) %></td></tr>
-      <% end %>
-    </tbody>
-  </table>
+  <div style="display: grid; grid-template-columns: auto 1fr; gap: 1.5rem; align-items: center;">
+    <div style="min-width: 350px;">
+      <%= la_donut_chart(data: medium_data, size: 160) %>
+    </div>
+    <table>
+      <thead><tr><th>Medium</th><th class="num">Visits</th></tr></thead>
+      <tbody>
+        <% @report.by_medium.each do |medium, count| %>
+          <tr><td><%= medium || "direct" %></td><td class="num"><%= number_with_delimiter(count) %></td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 </div>
 <% end %>
 

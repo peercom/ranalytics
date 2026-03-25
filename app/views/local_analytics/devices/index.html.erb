@@ -12,26 +12,40 @@
   <%= link_to "Operating Systems", devices_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, dimension: "os"), class: params[:dimension] == "os" ? "active" : "" %>
 </div>
 
-<div class="la-panel">
-  <table>
-    <thead>
-      <tr>
-        <th><%= (params[:dimension] || "device_type").humanize %></th>
-        <th class="num">Visits</th>
-        <th class="num">Visitors</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @report.rows.each do |row| %>
+<% dim = params[:dimension] || "device_type" %>
+<% chart_data = @report.rows.map { |r| [r.send(dim), r.visits.to_i] } %>
+
+<% if chart_data.any? %>
+<div style="display: grid; grid-template-columns: auto 1fr; gap: 1.5rem; align-items: start;">
+  <div class="la-panel" style="min-width: 380px;">
+    <%= la_donut_chart(data: chart_data, size: 180) %>
+  </div>
+
+  <div class="la-panel">
+<% else %>
+<div>
+  <div class="la-panel">
+<% end %>
+    <table>
+      <thead>
         <tr>
-          <td><%= row.send(params[:dimension] || "device_type") %></td>
-          <td class="num"><%= number_with_delimiter(row.visits) %></td>
-          <td class="num"><%= number_with_delimiter(row.visitors) %></td>
+          <th><%= dim.humanize %></th>
+          <th class="num">Visits</th>
+          <th class="num">Visitors</th>
         </tr>
-      <% end %>
-      <% if @report.rows.empty? %>
-        <tr><td colspan="3" class="la-empty">No device data for this period</td></tr>
-      <% end %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% @report.rows.each do |row| %>
+          <tr>
+            <td><%= row.send(dim) %></td>
+            <td class="num"><%= number_with_delimiter(row.visits) %></td>
+            <td class="num"><%= number_with_delimiter(row.visitors) %></td>
+          </tr>
+        <% end %>
+        <% if @report.rows.empty? %>
+          <tr><td colspan="3" class="la-empty">No device data for this period</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 </div>

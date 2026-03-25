@@ -3,6 +3,7 @@
 module LocalAnalytics
   class ApplicationController < ActionController::Base
     protect_from_forgery with: :exception
+    helper LocalAnalytics::ChartHelper
 
     before_action :authenticate_admin!
     before_action :set_current_property
