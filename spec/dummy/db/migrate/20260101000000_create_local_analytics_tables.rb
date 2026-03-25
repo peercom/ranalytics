@@ -1,4 +1,4 @@
-class CreateLocalAnalyticsTables < ActiveRecord::Migration<%= migration_version %>
+class CreateLocalAnalyticsTables < ActiveRecord::Migration[8.1]
   def change
     # ── Properties ──────────────────────────────────────────────────
     create_table :local_analytics_properties do |t|

@@ -61,7 +61,21 @@ module LocalAnalytics
     private
 
     def parse_payload
-      JSON.parse(request.body.read).symbolize_keys
+      body = request.body.read
+      body = request.raw_post if body.blank?
+
+      if body.present?
+        parsed = JSON.parse(body)
+        return parsed.symbolize_keys if parsed.is_a?(Hash)
+      end
+
+      # Fall back to Rails params (handles middleware-parsed JSON)
+      allowed = %i[type property_key url path title referrer visitor_id
+                   category action name value metadata goal_key revenue
+                   utm_source utm_medium utm_campaign utm_term utm_content
+                   screen_resolution viewport_size language load_time nav_type]
+      extracted = params.to_unsafe_h.symbolize_keys.slice(*allowed)
+      extracted.presence
     rescue JSON::ParserError
       nil
     end

@@ -16,7 +16,7 @@ module LocalAnalytics
       auth = LocalAnalytics.configuration.authenticate_with
       return unless auth
 
-      instance_exec(&auth)
+      instance_exec(self, &auth)
     end
 
     def set_current_property

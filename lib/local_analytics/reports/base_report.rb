@@ -45,14 +45,19 @@ module LocalAnalytics
         (page - 1) * per_page
       end
 
-      # Prefer aggregate tables for date ranges that are fully in the past.
-      # Fall back to raw tables for today or if aggregates haven't run yet.
+      # Prefer aggregate tables for date ranges that are fully in the past
+      # AND where aggregates actually exist. Falls back to raw tables otherwise.
       def use_aggregates?
-        date_range.last < Date.current
+        return false unless date_range.last < Date.current
+
+        property.daily_page_aggregates.in_range(date_range.first, date_range.last).exists?
       end
 
       def use_aggregates_for_comparison?
-        comparison_range && comparison_range.last < Date.current
+        return false unless comparison_range && comparison_range.last < Date.current
+
+        # Only use aggregates if they actually exist for this property/range
+        property.daily_page_aggregates.in_range(comparison_range.first, comparison_range.last).exists?
       end
 
       # Compute percentage change between two values.
