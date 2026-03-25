@@ -1,0 +1,42 @@
+<div class="la-header">
+  <h1>Properties</h1>
+  <%= link_to "New Property", new_property_path, style: "padding: 0.3rem 0.8rem; background: var(--primary); color: #fff; border-radius: 4px; font-size: 13px;" %>
+</div>
+
+<div class="la-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Key</th>
+        <th>Timezone</th>
+        <th>Status</th>
+        <th>Hostnames</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @properties.each do |property| %>
+        <tr>
+          <td><%= link_to property.name, property_path(property) %></td>
+          <td><code style="font-size:12px; background:#f0f0f0; padding:0.1rem 0.3rem; border-radius:3px;"><%= property.key %></code></td>
+          <td><%= property.timezone %></td>
+          <td><span class="la-badge <%= property.active? ? 'active' : 'inactive' %>"><%= property.active? ? "Active" : "Inactive" %></span></td>
+          <td><%= property.allowed_hostnames&.join(", ") %></td>
+          <td><%= link_to "Edit", edit_property_path(property) %></td>
+        </tr>
+      <% end %>
+      <% if @properties.empty? %>
+        <tr><td colspan="6" class="la-empty">No properties yet. <%= link_to "Create one", new_property_path %>.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<div class="la-panel" style="margin-top: 1rem;">
+  <h3>Tracking Snippet</h3>
+  <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0.5rem;">
+    Add this to your application layout to start tracking:
+  </p>
+  <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; font-size: 13px; overflow-x: auto;">&lt;%= local_analytics_tracking_tag %&gt;</pre>
+</div>

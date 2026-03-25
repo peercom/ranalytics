@@ -1,0 +1,39 @@
+<div class="la-header">
+  <h1>Goals</h1>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <%= render "local_analytics/shared/date_filter" %>
+    <%= link_to "New Goal", new_goal_path(property_id: current_property&.id), class: "la-date-form", style: "padding: 0.3rem 0.8rem; background: var(--primary); color: #fff; border-radius: 4px; font-size: 13px;" %>
+  </div>
+</div>
+
+<div class="la-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Goal</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th class="num">Conversions</th>
+        <th class="num">Conv. Rate</th>
+        <th class="num">Revenue</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @report.rows.each do |row| %>
+        <tr>
+          <td><%= link_to row.goal.name, goal_path(row.goal, property_id: current_property&.id) %></td>
+          <td><%= row.goal.goal_type.humanize %></td>
+          <td><span class="la-badge <%= row.goal.active? ? 'active' : 'inactive' %>"><%= row.goal.active? ? "Active" : "Inactive" %></span></td>
+          <td class="num"><%= number_with_delimiter(row.conversions_count) %></td>
+          <td class="num"><%= row.conversion_rate %>%</td>
+          <td class="num"><%= number_to_currency(row.revenue) %></td>
+          <td><%= link_to "Edit", edit_goal_path(row.goal, property_id: current_property&.id) %></td>
+        </tr>
+      <% end %>
+      <% if @report.rows.empty? %>
+        <tr><td colspan="7" class="la-empty">No goals configured. <%= link_to "Create one", new_goal_path(property_id: current_property&.id) %>.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

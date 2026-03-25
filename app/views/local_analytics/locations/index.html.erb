@@ -1,0 +1,37 @@
+<div class="la-header">
+  <h1>Locations</h1>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <%= render "local_analytics/shared/date_filter", extra_params: { dimension: params[:dimension] } %>
+    <%= link_to "CSV", export_locations_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, dimension: params[:dimension], format: :csv), class: "la-export" %>
+  </div>
+</div>
+
+<div class="la-tabs">
+  <%= link_to "Countries", locations_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, dimension: "country"), class: (params[:dimension].blank? || params[:dimension] == "country") ? "active" : "" %>
+  <%= link_to "Regions", locations_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, dimension: "region"), class: params[:dimension] == "region" ? "active" : "" %>
+  <%= link_to "Cities", locations_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, dimension: "city"), class: params[:dimension] == "city" ? "active" : "" %>
+</div>
+
+<div class="la-panel">
+  <table>
+    <thead>
+      <tr>
+        <th><%= (params[:dimension] || "country").humanize %></th>
+        <th class="num">Visits</th>
+        <th class="num">Visitors</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @report.rows.each do |row| %>
+        <tr>
+          <td><%= row.send(params[:dimension] || "country") %></td>
+          <td class="num"><%= number_with_delimiter(row.visits) %></td>
+          <td class="num"><%= number_with_delimiter(row.visitors) %></td>
+        </tr>
+      <% end %>
+      <% if @report.rows.empty? %>
+        <tr><td colspan="3" class="la-empty">No location data for this period. Enable geo in your initializer.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

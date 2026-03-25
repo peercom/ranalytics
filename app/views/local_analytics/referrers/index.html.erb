@@ -1,0 +1,52 @@
+<div class="la-header">
+  <h1>Referrers</h1>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <%= render "local_analytics/shared/date_filter" %>
+    <%= link_to "CSV", export_referrers_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, format: :csv), class: "la-export" %>
+  </div>
+</div>
+
+<% if @report.by_medium.any? %>
+<div class="la-panel" style="margin-bottom: 1rem;">
+  <h3>Traffic by Medium</h3>
+  <table>
+    <thead><tr><th>Medium</th><th class="num">Visits</th></tr></thead>
+    <tbody>
+      <% @report.by_medium.each do |medium, count| %>
+        <tr><td><%= medium || "direct" %></td><td class="num"><%= number_with_delimiter(count) %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<% end %>
+
+<div class="la-panel">
+  <h3>All Referrers</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Medium</th>
+        <th class="num">Visits</th>
+        <th class="num">Visitors</th>
+        <th class="num">Bounces</th>
+        <th class="num">Bounce Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @report.rows.each do |row| %>
+        <tr>
+          <td><%= row.referrer_host || row.referrer_source %></td>
+          <td><%= row.referrer_medium %></td>
+          <td class="num"><%= number_with_delimiter(row.visits) %></td>
+          <td class="num"><%= number_with_delimiter(row.visitors) %></td>
+          <td class="num"><%= number_with_delimiter(row.bounces) %></td>
+          <td class="num"><%= row.try(:bounce_rate) %>%</td>
+        </tr>
+      <% end %>
+      <% if @report.rows.empty? %>
+        <tr><td colspan="6" class="la-empty">No referrer data for this period</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

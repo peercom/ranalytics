@@ -1,0 +1,109 @@
+<div class="la-header">
+  <h1>Dashboard</h1>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <%= render "local_analytics/shared/date_filter" %>
+    <%= link_to "CSV", export_dashboard_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, format: :csv), class: "la-export" %>
+  </div>
+</div>
+
+<div class="la-cards">
+  <div class="la-card">
+    <div class="la-card-label">Unique Visitors</div>
+    <div class="la-card-value"><%= number_with_delimiter(@report.total_unique_visitors) %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Visits</div>
+    <div class="la-card-value"><%= number_with_delimiter(@report.total_visits) %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Pageviews</div>
+    <div class="la-card-value"><%= number_with_delimiter(@report.total_pageviews) %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Bounce Rate</div>
+    <div class="la-card-value"><%= @report.bounce_rate %>%</div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Avg Duration</div>
+    <div class="la-card-value"><%= @report.avg_visit_duration %>s</div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Pages/Visit</div>
+    <div class="la-card-value"><%= @report.avg_pages_per_visit %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Conversions</div>
+    <div class="la-card-value"><%= number_with_delimiter(@report.total_conversions) %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Revenue</div>
+    <div class="la-card-value"><%= number_to_currency(@report.total_revenue) %></div>
+  </div>
+</div>
+
+<div class="la-panel">
+  <h3>Daily Trend</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th class="num">Visitors</th>
+        <th class="num">Visits</th>
+        <th class="num">Pageviews</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @report.daily_stats.each do |day| %>
+        <tr>
+          <td><%= day[:date] %></td>
+          <td class="num"><%= number_with_delimiter(day[:visitors]) %></td>
+          <td class="num"><%= number_with_delimiter(day[:visits]) %></td>
+          <td class="num"><%= number_with_delimiter(day[:pageviews]) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+  <div class="la-panel">
+    <h3>Top Pages</h3>
+    <table>
+      <thead>
+        <tr><th>Path</th><th class="num">Views</th><th class="num">Visitors</th></tr>
+      </thead>
+      <tbody>
+        <% @report.top_pages.each do |page| %>
+          <tr>
+            <td><%= truncate(page.path, length: 60) %></td>
+            <td class="num"><%= number_with_delimiter(page.total) %></td>
+            <td class="num"><%= number_with_delimiter(page.visitors) %></td>
+          </tr>
+        <% end %>
+        <% if @report.top_pages.empty? %>
+          <tr><td colspan="3" class="la-empty">No data yet</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="la-panel">
+    <h3>Top Referrers</h3>
+    <table>
+      <thead>
+        <tr><th>Source</th><th class="num">Visits</th></tr>
+      </thead>
+      <tbody>
+        <% @report.top_referrers.each do |host, count| %>
+          <tr>
+            <td><%= host %></td>
+            <td class="num"><%= number_with_delimiter(count) %></td>
+          </tr>
+        <% end %>
+        <% if @report.top_referrers.empty? %>
+          <tr><td colspan="2" class="la-empty">No referrer data yet</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

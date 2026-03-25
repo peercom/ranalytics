@@ -1,0 +1,44 @@
+<div class="la-header">
+  <h1>Events</h1>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <%= render "local_analytics/shared/date_filter", extra_params: { category: params[:category] } %>
+    <%= link_to "CSV", export_events_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, category: params[:category], format: :csv), class: "la-export" %>
+  </div>
+</div>
+
+<% if @report.categories.any? %>
+  <div class="la-tabs">
+    <%= link_to "All", events_path(property_id: current_property&.id, from: date_range.first, to: date_range.last), class: params[:category].blank? ? "active" : "" %>
+    <% @report.categories.each do |cat| %>
+      <%= link_to cat, events_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, category: cat), class: params[:category] == cat ? "active" : "" %>
+    <% end %>
+  </div>
+<% end %>
+
+<div class="la-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Action</th>
+        <th class="num">Events</th>
+        <th class="num">Visitors</th>
+        <th class="num">Total Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @report.rows.each do |row| %>
+        <tr>
+          <td><%= row.category %></td>
+          <td><%= row.action %></td>
+          <td class="num"><%= number_with_delimiter(row.total_events) %></td>
+          <td class="num"><%= number_with_delimiter(row.visitors) %></td>
+          <td class="num"><%= number_with_delimiter(row.total_value) %></td>
+        </tr>
+      <% end %>
+      <% if @report.rows.empty? %>
+        <tr><td colspan="5" class="la-empty">No events for this period</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

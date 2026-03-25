@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analytics — <%= current_property&.name || "LocalAnalytics" %></title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --card-bg: #fff;
+      --text: #212529;
+      --text-muted: #6c757d;
+      --border: #dee2e6;
+      --primary: #0d6efd;
+      --primary-hover: #0b5ed7;
+      --success: #198754;
+      --danger: #dc3545;
+      --nav-bg: #212529;
+      --nav-text: #adb5bd;
+      --nav-active: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .la-layout { display: flex; min-height: 100vh; }
+    .la-sidebar { width: 220px; background: var(--nav-bg); color: var(--nav-text); padding: 1rem 0; flex-shrink: 0; }
+    .la-sidebar h2 { padding: 0 1rem 1rem; font-size: 16px; color: var(--nav-active); border-bottom: 1px solid #343a40; margin-bottom: 0.5rem; }
+    .la-sidebar nav a { display: block; padding: 0.4rem 1rem; color: var(--nav-text); font-size: 13px; }
+    .la-sidebar nav a:hover, .la-sidebar nav a.active { color: var(--nav-active); background: rgba(255,255,255,0.05); text-decoration: none; }
+    .la-sidebar .la-nav-section { padding: 0.5rem 1rem 0.2rem; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; margin-top: 0.5rem; }
+    .la-sidebar select { margin: 0.5rem 1rem; width: calc(100% - 2rem); padding: 0.3rem; font-size: 12px; background: #343a40; color: #fff; border: 1px solid #495057; border-radius: 4px; }
+
+    .la-main { flex: 1; padding: 1.5rem; max-width: 1200px; }
+    .la-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem; }
+    .la-header h1 { font-size: 20px; font-weight: 600; }
+
+    .la-date-form { display: flex; gap: 0.5rem; align-items: center; }
+    .la-date-form input[type="date"] { padding: 0.3rem 0.5rem; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+    .la-date-form button { padding: 0.3rem 0.8rem; background: var(--primary); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .la-date-form button:hover { background: var(--primary-hover); }
+
+    .la-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .la-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
+    .la-card .la-card-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
+    .la-card .la-card-value { font-size: 24px; font-weight: 700; margin-top: 0.25rem; }
+
+    .la-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+    .la-panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 0.75rem; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; padding: 0.5rem; border-bottom: 2px solid var(--border); }
+    td { padding: 0.5rem; border-bottom: 1px solid var(--border); font-size: 13px; }
+    tr:last-child td { border-bottom: none; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    th.num { text-align: right; }
+
+    .la-export { font-size: 12px; color: var(--text-muted); }
+    .la-tabs { display: flex; gap: 0; margin-bottom: 1rem; border-bottom: 2px solid var(--border); }
+    .la-tabs a { padding: 0.5rem 1rem; font-size: 13px; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .la-tabs a.active, .la-tabs a:hover { color: var(--primary); border-bottom-color: var(--primary); text-decoration: none; }
+
+    .la-empty { padding: 2rem; text-align: center; color: var(--text-muted); }
+    .la-pagination { display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: center; }
+    .la-pagination a { padding: 0.3rem 0.8rem; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+
+    .la-form label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 0.25rem; margin-top: 0.75rem; }
+    .la-form input, .la-form select, .la-form textarea { width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+    .la-form .la-btn { display: inline-block; margin-top: 1rem; padding: 0.5rem 1.5rem; background: var(--primary); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    .la-form .la-btn:hover { background: var(--primary-hover); }
+
+    .la-flash { padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 4px; font-size: 13px; }
+    .la-flash.notice { background: #d1e7dd; color: #0f5132; }
+    .la-flash.alert { background: #f8d7da; color: #842029; }
+
+    .la-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .la-badge.active { background: #d1e7dd; color: #0f5132; }
+    .la-badge.inactive { background: #f8d7da; color: #842029; }
+
+    .la-realtime-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success); margin-right: 0.3rem; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  </style>
+</head>
+<body>
+  <div class="la-layout">
+    <aside class="la-sidebar">
+      <h2><%= link_to "LocalAnalytics", local_analytics.root_path, style: "color: inherit" %></h2>
+
+      <% if available_properties.any? %>
+        <form method="get" action="<%= request.path %>">
+          <select name="property_id" onchange="this.form.submit()">
+            <% available_properties.each do |p| %>
+              <option value="<%= p.id %>" <%= "selected" if current_property&.id == p.id %>><%= p.name %></option>
+            <% end %>
+          </select>
+          <% if params[:from].present? %>
+            <input type="hidden" name="from" value="<%= params[:from] %>">
+            <input type="hidden" name="to" value="<%= params[:to] %>">
+          <% end %>
+        </form>
+      <% end %>
+
+      <nav>
+        <div class="la-nav-section">Overview</div>
+        <%= link_to "Dashboard", local_analytics.dashboard_path(property_id: current_property&.id), class: ("active" if controller_name == "dashboard") %>
+        <%= link_to "Real-Time", local_analytics.real_time_path(property_id: current_property&.id), class: ("active" if controller_name == "real_time") %>
+
+        <div class="la-nav-section">Behavior</div>
+        <%= link_to "Pages", local_analytics.pages_path(property_id: current_property&.id), class: ("active" if controller_name == "pages") %>
+        <%= link_to "Events", local_analytics.events_path(property_id: current_property&.id), class: ("active" if controller_name == "events") %>
+        <%= link_to "Site Search", local_analytics.site_search_index_path(property_id: current_property&.id), class: ("active" if controller_name == "site_search") %>
+
+        <div class="la-nav-section">Acquisition</div>
+        <%= link_to "Referrers", local_analytics.referrers_path(property_id: current_property&.id), class: ("active" if controller_name == "referrers") %>
+        <%= link_to "Campaigns", local_analytics.campaigns_path(property_id: current_property&.id), class: ("active" if controller_name == "campaigns") %>
+
+        <div class="la-nav-section">Conversions</div>
+        <%= link_to "Goals", local_analytics.goals_path(property_id: current_property&.id), class: ("active" if controller_name == "goals") %>
+
+        <div class="la-nav-section">Audience</div>
+        <%= link_to "Devices", local_analytics.devices_path(property_id: current_property&.id), class: ("active" if controller_name == "devices") %>
+        <%= link_to "Locations", local_analytics.locations_path(property_id: current_property&.id), class: ("active" if controller_name == "locations") %>
+
+        <div class="la-nav-section">Admin</div>
+        <%= link_to "Properties", local_analytics.properties_path, class: ("active" if controller_name == "properties") %>
+      </nav>
+    </aside>
+
+    <main class="la-main">
+      <% if flash[:notice] %>
+        <div class="la-flash notice"><%= flash[:notice] %></div>
+      <% end %>
+      <% if flash[:alert] %>
+        <div class="la-flash alert"><%= flash[:alert] %></div>
+      <% end %>
+
+      <%= yield %>
+    </main>
+  </div>
+</body>
+</html>

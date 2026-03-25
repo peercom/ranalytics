@@ -1,0 +1,31 @@
+<div class="la-header">
+  <h1>Site Search</h1>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <%= render "local_analytics/shared/date_filter" %>
+    <%= link_to "CSV", export_site_search_index_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, format: :csv), class: "la-export" %>
+  </div>
+</div>
+
+<div class="la-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Search Term</th>
+        <th class="num">Searches</th>
+        <th class="num">Visitors</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @report.rows.each do |row| %>
+        <tr>
+          <td><%= row.search_term %></td>
+          <td class="num"><%= number_with_delimiter(row.searches) %></td>
+          <td class="num"><%= number_with_delimiter(row.visitors) %></td>
+        </tr>
+      <% end %>
+      <% if @report.rows.empty? %>
+        <tr><td colspan="3" class="la-empty">No site search data. Configure search params in your initializer.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

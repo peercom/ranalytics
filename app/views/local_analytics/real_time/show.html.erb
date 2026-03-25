@@ -1,0 +1,99 @@
+<div class="la-header">
+  <h1><span class="la-realtime-dot"></span> Real-Time</h1>
+  <p style="color: var(--text-muted); font-size: 13px;">
+    Showing activity from the last 30 minutes. Refresh to update.
+  </p>
+</div>
+
+<div class="la-cards">
+  <div class="la-card">
+    <div class="la-card-label">Active Now (5 min)</div>
+    <div class="la-card-value"><%= @report.active_visitors_5min %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Active (30 min)</div>
+    <div class="la-card-value"><%= @report.active_visitors_30min %></div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+  <div class="la-panel">
+    <h3>Top Pages</h3>
+    <table>
+      <thead><tr><th>Path</th><th class="num">Views</th></tr></thead>
+      <tbody>
+        <% @report.top_pages.each do |path, count| %>
+          <tr><td><%= truncate(path, length: 50) %></td><td class="num"><%= count %></td></tr>
+        <% end %>
+        <% if @report.top_pages.empty? %>
+          <tr><td colspan="2" class="la-empty">No recent activity</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="la-panel">
+    <h3>Top Referrers</h3>
+    <table>
+      <thead><tr><th>Source</th><th class="num">Visits</th></tr></thead>
+      <tbody>
+        <% @report.top_referrers.each do |host, count| %>
+          <tr><td><%= host %></td><td class="num"><%= count %></td></tr>
+        <% end %>
+        <% if @report.top_referrers.empty? %>
+          <tr><td colspan="2" class="la-empty">No recent referrers</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<% if @report.top_campaigns.any? %>
+<div class="la-panel">
+  <h3>Active Campaigns</h3>
+  <table>
+    <thead><tr><th>Campaign</th><th class="num">Visits</th></tr></thead>
+    <tbody>
+      <% @report.top_campaigns.each do |campaign, count| %>
+        <tr><td><%= campaign %></td><td class="num"><%= count %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<% end %>
+
+<div class="la-panel">
+  <h3>Recent Pageviews</h3>
+  <table>
+    <thead><tr><th>Time</th><th>Path</th><th>Title</th></tr></thead>
+    <tbody>
+      <% @report.recent_pageviews.each do |pv| %>
+        <tr>
+          <td><%= time_ago_in_words(pv.viewed_at) %> ago</td>
+          <td><%= truncate(pv.path, length: 50) %></td>
+          <td><%= truncate(pv.title.to_s, length: 40) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<div class="la-panel">
+  <h3>Recent Events</h3>
+  <table>
+    <thead><tr><th>Time</th><th>Category</th><th>Action</th><th>Name</th></tr></thead>
+    <tbody>
+      <% @report.recent_events.each do |event| %>
+        <tr>
+          <td><%= time_ago_in_words(event.created_at) %> ago</td>
+          <td><%= event.category %></td>
+          <td><%= event.action %></td>
+          <td><%= event.name %></td>
+        </tr>
+      <% end %>
+      <% if @report.recent_events.empty? %>
+        <tr><td colspan="4" class="la-empty">No recent events</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,31 @@
+<div class="la-header">
+  <h1><%= @goal.name %></h1>
+  <%= render "local_analytics/shared/date_filter" %>
+</div>
+
+<div class="la-cards">
+  <div class="la-card">
+    <div class="la-card-label">Conversions</div>
+    <div class="la-card-value"><%= number_with_delimiter(@report.total_conversions) %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Conversion Rate</div>
+    <div class="la-card-value"><%= @report.conversion_rate %>%</div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Revenue</div>
+    <div class="la-card-value"><%= number_to_currency(@report.total_revenue) %></div>
+  </div>
+</div>
+
+<div class="la-panel">
+  <h3>Daily Conversions</h3>
+  <table>
+    <thead><tr><th>Date</th><th class="num">Conversions</th></tr></thead>
+    <tbody>
+      <% @report.daily_conversions.sort.each do |date, count| %>
+        <tr><td><%= date %></td><td class="num"><%= count %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

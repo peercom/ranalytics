@@ -1,0 +1,63 @@
+<div class="la-header">
+  <h1>Pages</h1>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <%= render "local_analytics/shared/date_filter", extra_params: { type: params[:type] } %>
+    <%= link_to "CSV", export_pages_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, type: params[:type], format: :csv), class: "la-export" %>
+  </div>
+</div>
+
+<div class="la-tabs">
+  <%= link_to "All Pages", pages_path(property_id: current_property&.id, from: date_range.first, to: date_range.last), class: (params[:type].blank? || params[:type] == "all") ? "active" : "" %>
+  <%= link_to "Entry Pages", pages_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, type: "entry"), class: params[:type] == "entry" ? "active" : "" %>
+  <%= link_to "Exit Pages", pages_path(property_id: current_property&.id, from: date_range.first, to: date_range.last, type: "exit"), class: params[:type] == "exit" ? "active" : "" %>
+</div>
+
+<div class="la-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Path</th>
+        <% if params[:type] == "entry" %>
+          <th class="num">Entries</th>
+          <th class="num">Bounces</th>
+          <th class="num">Bounce Rate</th>
+        <% elsif params[:type] == "exit" %>
+          <th class="num">Exits</th>
+          <th class="num">Pageviews</th>
+          <th class="num">Exit Rate</th>
+        <% else %>
+          <th class="num">Pageviews</th>
+          <th class="num">Visitors</th>
+          <th class="num">Entries</th>
+          <th class="num">Exits</th>
+          <th class="num">Bounce Rate</th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% @report.rows.each do |row| %>
+        <tr>
+          <td><%= truncate(row.path, length: 80) %></td>
+          <% if params[:type] == "entry" %>
+            <td class="num"><%= number_with_delimiter(row.entries) %></td>
+            <td class="num"><%= number_with_delimiter(row.bounces) %></td>
+            <td class="num"><%= row.bounce_rate %>%</td>
+          <% elsif params[:type] == "exit" %>
+            <td class="num"><%= number_with_delimiter(row.exits) %></td>
+            <td class="num"><%= number_with_delimiter(row.pageviews) %></td>
+            <td class="num"><%= row.exit_rate %>%</td>
+          <% else %>
+            <td class="num"><%= number_with_delimiter(row.pageviews) %></td>
+            <td class="num"><%= number_with_delimiter(row.visitors) %></td>
+            <td class="num"><%= row.try(:entries) %></td>
+            <td class="num"><%= row.try(:exits) %></td>
+            <td class="num"><%= row.try(:bounce_rate) %>%</td>
+          <% end %>
+        </tr>
+      <% end %>
+      <% if @report.rows.empty? %>
+        <tr><td colspan="6" class="la-empty">No data for this period</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

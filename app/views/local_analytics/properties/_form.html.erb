@@ -1,0 +1,28 @@
+<div class="la-panel la-form">
+  <%= form_with(model: property, url: property.persisted? ? property_path(property) : properties_path) do |f| %>
+    <% if property.errors.any? %>
+      <div class="la-flash alert">
+        <strong><%= pluralize(property.errors.count, "error") %>:</strong>
+        <ul><% property.errors.full_messages.each do |msg| %><li><%= msg %></li><% end %></ul>
+      </div>
+    <% end %>
+
+    <label>Name</label>
+    <%= f.text_field :name, placeholder: "e.g., Marketing Site" %>
+
+    <label>Timezone</label>
+    <%= f.time_zone_select :timezone, nil, {}, { style: "width: 100%" } %>
+
+    <label>Currency</label>
+    <%= f.text_field :currency, placeholder: "USD" %>
+
+    <label>Active</label>
+    <%= f.check_box :active %>
+
+    <label>Retention (days, blank for default)</label>
+    <%= f.number_field :retention_days, placeholder: "e.g., 730" %>
+
+    <button type="submit" class="la-btn"><%= property.persisted? ? "Update" : "Create" %> Property</button>
+    <%= link_to "Cancel", properties_path, style: "margin-left: 1rem;" %>
+  <% end %>
+</div>

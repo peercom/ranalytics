@@ -1,0 +1,12 @@
+<form method="get" class="la-date-form">
+  <input type="hidden" name="property_id" value="<%= current_property&.id %>">
+  <% if defined?(extra_params) && extra_params.present? %>
+    <% extra_params.each do |k, v| %>
+      <input type="hidden" name="<%= k %>" value="<%= v %>">
+    <% end %>
+  <% end %>
+  <input type="date" name="from" value="<%= date_range.first %>">
+  <span>&mdash;</span>
+  <input type="date" name="to" value="<%= date_range.last %>">
+  <button type="submit">Apply</button>
+</form>

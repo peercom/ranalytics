@@ -1,0 +1,27 @@
+<div class="la-header">
+  <h1><%= @property.name %></h1>
+  <%= link_to "Edit", edit_property_path(@property) %>
+</div>
+
+<div class="la-panel">
+  <table>
+    <tr><td><strong>Key</strong></td><td><code><%= @property.key %></code></td></tr>
+    <tr><td><strong>Timezone</strong></td><td><%= @property.timezone %></td></tr>
+    <tr><td><strong>Currency</strong></td><td><%= @property.currency %></td></tr>
+    <tr><td><strong>Status</strong></td><td><span class="la-badge <%= @property.active? ? 'active' : 'inactive' %>"><%= @property.active? ? "Active" : "Inactive" %></span></td></tr>
+    <tr><td><strong>Allowed Hostnames</strong></td><td><%= @property.allowed_hostnames&.join(", ").presence || "All" %></td></tr>
+    <tr><td><strong>Retention</strong></td><td><%= @property.retention_days ? "#{@property.retention_days} days" : "Default" %></td></tr>
+    <tr><td><strong>Created</strong></td><td><%= @property.created_at.strftime("%Y-%m-%d %H:%M") %></td></tr>
+  </table>
+</div>
+
+<div class="la-panel" style="margin-top: 1rem;">
+  <h3>Tracking Snippet</h3>
+  <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; font-size: 13px;">&lt;%= local_analytics_tracking_tag(property_key: "<%= @property.key %>") %&gt;</pre>
+</div>
+
+<div style="margin-top: 2rem;">
+  <%= button_to "Delete Property", property_path(@property), method: :delete,
+    data: { turbo_confirm: "Delete this property and ALL its analytics data?" },
+    style: "background: var(--danger); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;" %>
+</div>

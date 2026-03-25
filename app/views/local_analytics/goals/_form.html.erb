@@ -1,0 +1,32 @@
+<div class="la-panel la-form">
+  <%= form_with(model: goal, url: goal.persisted? ? goal_path(goal, property_id: current_property&.id) : goals_path(property_id: current_property&.id)) do |f| %>
+    <% if goal.errors.any? %>
+      <div class="la-flash alert">
+        <strong><%= pluralize(goal.errors.count, "error") %>:</strong>
+        <ul><% goal.errors.full_messages.each do |msg| %><li><%= msg %></li><% end %></ul>
+      </div>
+    <% end %>
+
+    <label>Name</label>
+    <%= f.text_field :name, placeholder: "e.g., Signup Completed" %>
+
+    <label>Key (unique identifier)</label>
+    <%= f.text_field :key, placeholder: "e.g., signup_completed" %>
+
+    <label>Goal Type</label>
+    <%= f.select :goal_type, LocalAnalytics::Goal::GOAL_TYPES.map { |t| [t.humanize, t] }, include_blank: "Select type..." %>
+
+    <label>Active</label>
+    <%= f.check_box :active %>
+
+    <label>Default Revenue</label>
+    <%= f.number_field :revenue_default, step: 0.01, placeholder: "0.00" %>
+
+    <p style="margin-top:1rem; font-size:12px; color:var(--text-muted);">
+      Match configuration (JSON) can be edited after creation via the Rails console or API.
+    </p>
+
+    <button type="submit" class="la-btn"><%= goal.persisted? ? "Update Goal" : "Create Goal" %></button>
+    <%= link_to "Cancel", goals_path(property_id: current_property&.id), style: "margin-left: 1rem;" %>
+  <% end %>
+</div>

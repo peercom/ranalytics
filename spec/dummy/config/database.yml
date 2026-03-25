@@ -1,0 +1,6 @@
+test:
+  adapter: postgresql
+  database: local_analytics_test
+  encoding: unicode
+  host: localhost
+  pool: 5
