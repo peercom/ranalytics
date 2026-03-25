@@ -38,6 +38,33 @@ RSpec.describe LocalAnalytics::ChartHelper, type: :helper do
       )
       expect(html).to include("<svg")
     end
+
+    it "renders dashed series for comparison" do
+      html = helper.la_area_chart(
+        series: { "Current" => [10, 20, 15], "Previous" => [8, 15, 12] },
+        labels: %w[A B C],
+        dashed: [false, true]
+      )
+      expect(html).to include("stroke-dasharray")
+    end
+
+    it "renders solid series without dashed flag" do
+      html = helper.la_area_chart(
+        series: { "Visits" => [10, 20, 15] },
+        labels: %w[A B C],
+        dashed: [false]
+      )
+      expect(html).not_to include("stroke-dasharray")
+    end
+
+    it "escapes HTML in labels" do
+      html = helper.la_area_chart(
+        series: { "X" => [1, 2] },
+        labels: ["<script>", "normal"]
+      )
+      expect(html).not_to include("<script>")
+      expect(html).to include("&lt;script&gt;")
+    end
   end
 
   describe "#la_bar_chart" do

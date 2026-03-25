@@ -89,5 +89,82 @@ RSpec.describe LocalAnalytics::Goal, type: :model do
     it "does not match below threshold" do
       expect(goal.matches_visit_duration?(299)).to be false
     end
+
+    it "matches exactly at threshold" do
+      expect(goal.matches_visit_duration?(300)).to be true
+    end
+  end
+
+  describe "#matches_pages_per_visit?" do
+    let(:goal) do
+      create(:goal, property: property, goal_type: "pages_per_visit",
+             match_config: { "count" => 5 })
+    end
+
+    it "matches when count exceeds threshold" do
+      expect(goal.matches_pages_per_visit?(6)).to be true
+    end
+
+    it "matches at exact threshold" do
+      expect(goal.matches_pages_per_visit?(5)).to be true
+    end
+
+    it "does not match below threshold" do
+      expect(goal.matches_pages_per_visit?(4)).to be false
+    end
+  end
+
+  describe "inactive goals" do
+    let(:goal) do
+      create(:goal, property: property, goal_type: "url_match", active: false,
+             match_config: { "pattern" => "/thank-you", "match_type" => "exact" })
+    end
+    let(:visitor) { create(:visitor, property: property) }
+    let(:visit) { create(:visit, property: property, visitor: visitor) }
+
+    it "does not match pageviews when inactive" do
+      pv = build(:pageview, path: "/thank-you", property: property, visit: visit, visitor: visitor)
+      expect(goal.matches_pageview?(pv)).to be false
+    end
+
+    it "does not match events when inactive" do
+      goal.update!(goal_type: "event_match", match_config: { "category" => "x" })
+      event = build(:event, category: "x", action: "y")
+      expect(goal.matches_event?(event)).to be false
+    end
+  end
+
+  describe "regex matching" do
+    let(:visitor) { create(:visitor, property: property) }
+    let(:visit) { create(:visit, property: property, visitor: visitor) }
+
+    it "matches regex patterns" do
+      goal = create(:goal, property: property, goal_type: "url_match",
+                    match_config: { "pattern" => "/checkout/step\\d+", "match_type" => "regex" })
+      pv = build(:pageview, path: "/checkout/step3", property: property, visit: visit, visitor: visitor)
+      expect(goal.matches_pageview?(pv)).to be true
+    end
+
+    it "returns false for invalid regex" do
+      goal = create(:goal, property: property, goal_type: "url_match",
+                    match_config: { "pattern" => "[invalid", "match_type" => "regex" })
+      pv = build(:pageview, path: "/anything", property: property, visit: visit, visitor: visitor)
+      expect(goal.matches_pageview?(pv)).to be false
+    end
+  end
+
+  describe "scopes" do
+    it ".active returns only active goals" do
+      active = create(:goal, property: property, active: true)
+      create(:goal, property: property, active: false, key: "inactive_goal")
+      expect(LocalAnalytics::Goal.active).to contain_exactly(active)
+    end
+  end
+
+  describe "key generation" do
+    it "auto-generates key from name" do
+      goal = create(:goal, property: property, name: "Sign Up Now", key: nil)
+      expect(goal.key).to eq("sign_up_now")
+    end
   end
 end

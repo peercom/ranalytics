@@ -154,6 +154,155 @@ RSpec.describe LocalAnalytics::Services::TrackingProcessor do
         expect { described_class.new({ type: "invalid", property_key: property.key }).process }
           .not_to change(LocalAnalytics::Pageview, :count)
       end
+
+      it "ignores inactive property" do
+        property.update!(active: false)
+        expect { described_class.new({ type: "pageview", property_key: property.key, url: "/", path: "/" }).process }
+          .not_to change(LocalAnalytics::Pageview, :count)
+      end
+    end
+
+    context "hostname validation" do
+      before { property.update!(allowed_hostnames: ["example.com"]) }
+
+      it "allows matching hostnames" do
+        payload = { type: "pageview", property_key: property.key,
+                    url: "https://example.com/page", path: "/page",
+                    visitor_id: "v1", user_agent: "Mozilla/5.0" }
+        expect { described_class.new(payload).process }
+          .to change(LocalAnalytics::Pageview, :count).by(1)
+      end
+
+      it "rejects non-matching hostnames" do
+        payload = { type: "pageview", property_key: property.key,
+                    url: "https://evil.com/page", path: "/page",
+                    visitor_id: "v1", user_agent: "Mozilla/5.0" }
+        expect { described_class.new(payload).process }
+          .not_to change(LocalAnalytics::Pageview, :count)
+      end
+    end
+
+    context "visit session management" do
+      let(:payload) do
+        { type: "pageview", property_key: property.key,
+          url: "https://example.com/page", path: "/page",
+          visitor_id: "session_test", user_agent: "Mozilla/5.0" }
+      end
+
+      it "creates a new visit after timeout" do
+        described_class.new(payload).process
+        # Simulate visit timeout by updating ended_at far in the past
+        LocalAnalytics::Visit.last.update_column(:ended_at, 2.hours.ago)
+        LocalAnalytics::Visit.last.update_column(:started_at, 2.hours.ago)
+
+        described_class.new(payload.merge(path: "/page2", url: "https://example.com/page2")).process
+        expect(LocalAnalytics::Visit.count).to eq(2)
+      end
+
+      it "marks visitor as returning on subsequent visits" do
+        described_class.new(payload).process
+        visitor = LocalAnalytics::Visitor.last
+        expect(visitor.returning).to be false
+
+        # Force new visit
+        LocalAnalytics::Visit.last.update_column(:ended_at, 2.hours.ago)
+        LocalAnalytics::Visit.last.update_column(:started_at, 2.hours.ago)
+        described_class.new(payload).process
+
+        expect(visitor.reload.returning).to be true
+      end
+    end
+
+    context "referrer classification" do
+      let(:base_payload) do
+        { type: "pageview", property_key: property.key,
+          url: "https://example.com/", path: "/",
+          visitor_id: "ref_test", user_agent: "Mozilla/5.0" }
+      end
+
+      it "classifies social referrers" do
+        described_class.new(base_payload.merge(referrer: "https://twitter.com/status/123")).process
+        visit = LocalAnalytics::Visit.last
+        expect(visit.referrer_medium).to eq("social")
+        expect(visit.social_network).to eq("twitter")
+      end
+
+      it "classifies search referrers" do
+        described_class.new(base_payload.merge(referrer: "https://www.bing.com/search?q=test")).process
+        visit = LocalAnalytics::Visit.last
+        expect(visit.referrer_medium).to eq("search")
+        expect(visit.search_engine).to eq("bing")
+      end
+
+      it "classifies generic referrers" do
+        described_class.new(base_payload.merge(referrer: "https://blog.example.org/post")).process
+        visit = LocalAnalytics::Visit.last
+        expect(visit.referrer_medium).to eq("referral")
+        expect(visit.referrer_host).to eq("blog.example.org")
+      end
+
+      it "handles empty referrer" do
+        described_class.new(base_payload).process
+        visit = LocalAnalytics::Visit.last
+        expect(visit.referrer_host).to be_nil
+      end
+
+      it "handles invalid referrer URI" do
+        described_class.new(base_payload.merge(referrer: "not a url at all %%%")).process
+        visit = LocalAnalytics::Visit.last
+        expect(visit.referrer_host).to be_nil
+      end
+    end
+
+    context "auto-goal evaluation" do
+      let!(:url_goal) do
+        create(:goal, property: property, goal_type: "url_match",
+               match_config: { "pattern" => "/thank-you", "match_type" => "exact" }, key: "thanks")
+      end
+
+      it "triggers URL match goals automatically" do
+        payload = { type: "pageview", property_key: property.key,
+                    url: "https://example.com/thank-you", path: "/thank-you",
+                    visitor_id: "goal_test", user_agent: "Mozilla/5.0" }
+        expect { described_class.new(payload).process }
+          .to change(LocalAnalytics::Conversion, :count).by(1)
+      end
+    end
+
+    context "site search extraction" do
+      it "creates site_search event from search query params" do
+        LocalAnalytics.configuration.site_search_params = %w[q]
+        payload = { type: "pageview", property_key: property.key,
+                    url: "https://example.com/search?q=ruby+gems", path: "/search",
+                    visitor_id: "search_test", user_agent: "Mozilla/5.0" }
+        described_class.new(payload).process
+
+        search_event = LocalAnalytics::Event.find_by(category: "site_search")
+        expect(search_event).to be_present
+        expect(search_event.name).to eq("ruby gems")
+      end
+    end
+
+    context "cookieless mode" do
+      it "generates a visitor ID when none provided" do
+        payload = { type: "pageview", property_key: property.key,
+                    url: "https://example.com/", path: "/",
+                    ip: "1.2.3.4", user_agent: "Mozilla/5.0" }
+        expect { described_class.new(payload).process }
+          .to change(LocalAnalytics::Visitor, :count).by(1)
+
+        visitor = LocalAnalytics::Visitor.last
+        expect(visitor.visitor_token).to be_present
+        expect(visitor.visitor_token.length).to eq(32)
+      end
+    end
+
+    context "error handling" do
+      it "does not raise on processing errors" do
+        allow(LocalAnalytics::Property).to receive(:active).and_raise(StandardError, "db error")
+        payload = { type: "pageview", property_key: property.key, url: "/", path: "/" }
+        expect { described_class.new(payload).process }.not_to raise_error
+      end
     end
   end
 end
