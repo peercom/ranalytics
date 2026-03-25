@@ -12,13 +12,22 @@ module LocalAnalytics
       end
 
       def total_visits
-        @total_visits ||= property.visits.in_range(date_range.first.beginning_of_day, date_range.last.end_of_day).count
+        @total_visits ||= if use_aggregates?
+          # Sum visits_count from page aggregates (deduplicated via visits_count column)
+          property.daily_page_aggregates.in_range(date_range.first, date_range.last).sum(:visits_count)
+        else
+          property.visits.in_range(date_range.first.beginning_of_day, date_range.last.end_of_day).count
+        end
       end
 
       def total_unique_visitors
-        @total_unique_visitors ||= property.visits
-          .in_range(date_range.first.beginning_of_day, date_range.last.end_of_day)
-          .distinct.count(:visitor_id)
+        @total_unique_visitors ||= if use_aggregates?
+          property.daily_page_aggregates.in_range(date_range.first, date_range.last).sum(:unique_visitors)
+        else
+          property.visits
+            .in_range(date_range.first.beginning_of_day, date_range.last.end_of_day)
+            .distinct.count(:visitor_id)
+        end
       end
 
       def bounce_rate
@@ -99,13 +108,23 @@ module LocalAnalytics
 
       # Top referrers for dashboard widget
       def top_referrers(limit: 10)
-        property.visits
-          .in_range(date_range.first.beginning_of_day, date_range.last.end_of_day)
-          .where.not(referrer_host: [nil, ""])
-          .group(:referrer_host)
-          .order(Arel.sql("COUNT(*) DESC"))
-          .limit(limit)
-          .pluck(:referrer_host, Arel.sql("COUNT(*)"))
+        if use_aggregates?
+          property.daily_referrer_aggregates
+            .in_range(date_range.first, date_range.last)
+            .where.not(referrer_host: [nil, ""])
+            .group(:referrer_host)
+            .order(Arel.sql("SUM(visits_count) DESC"))
+            .limit(limit)
+            .pluck(:referrer_host, Arel.sql("SUM(visits_count)"))
+        else
+          property.visits
+            .in_range(date_range.first.beginning_of_day, date_range.last.end_of_day)
+            .where.not(referrer_host: [nil, ""])
+            .group(:referrer_host)
+            .order(Arel.sql("COUNT(*) DESC"))
+            .limit(limit)
+            .pluck(:referrer_host, Arel.sql("COUNT(*)"))
+        end
       end
 
       private
@@ -118,8 +137,16 @@ module LocalAnalytics
           property.pageviews.in_range(cr.first.beginning_of_day, cr.last.end_of_day).count
         end
 
-        prev_visits = property.visits.in_range(cr.first.beginning_of_day, cr.last.end_of_day).count
-        prev_visitors = property.visits.in_range(cr.first.beginning_of_day, cr.last.end_of_day).distinct.count(:visitor_id)
+        prev_visits = if use_aggregates_for_comparison?
+          property.daily_page_aggregates.in_range(cr.first, cr.last).sum(:visits_count)
+        else
+          property.visits.in_range(cr.first.beginning_of_day, cr.last.end_of_day).count
+        end
+        prev_visitors = if use_aggregates_for_comparison?
+          property.daily_page_aggregates.in_range(cr.first, cr.last).sum(:unique_visitors)
+        else
+          property.visits.in_range(cr.first.beginning_of_day, cr.last.end_of_day).distinct.count(:visitor_id)
+        end
 
         prev_bounced = prev_visits > 0 ? property.visits.in_range(cr.first.beginning_of_day, cr.last.end_of_day).bounced.count : 0
         prev_bounce_rate = prev_visits > 0 ? (prev_bounced.to_f / prev_visits * 100).round(1) : 0.0
@@ -159,29 +186,35 @@ module LocalAnalytics
 
       def build_daily_stats(range)
         dates = range.to_a
+        has_aggs = range.last < Date.current &&
+          property.daily_page_aggregates.in_range(range.first, range.last).exists?
 
-        visits_by_day = property.visits
-          .in_range(range.first.beginning_of_day, range.last.end_of_day)
-          .group(Arel.sql("DATE(started_at)"))
-          .count
-
-        past = range.last < Date.current
-        pageviews_by_day = if past
-          property.daily_page_aggregates
+        if has_aggs
+          # Use aggregate tables for all three metrics
+          pageviews_by_day = property.daily_page_aggregates
             .in_range(range.first, range.last)
-            .group(:date)
-            .sum(:pageviews_count)
-        else
-          property.pageviews
-            .in_range(range.first.beginning_of_day, range.last.end_of_day)
-            .group(Arel.sql("DATE(viewed_at)"))
-            .count
-        end
+            .group(:date).sum(:pageviews_count)
 
-        visitors_by_day = property.visits
-          .in_range(range.first.beginning_of_day, range.last.end_of_day)
-          .group(Arel.sql("DATE(started_at)"))
-          .distinct.count(:visitor_id)
+          visits_by_day = property.daily_page_aggregates
+            .in_range(range.first, range.last)
+            .group(:date).sum(:visits_count)
+
+          visitors_by_day = property.daily_page_aggregates
+            .in_range(range.first, range.last)
+            .group(:date).sum(:unique_visitors)
+        else
+          visits_by_day = property.visits
+            .in_range(range.first.beginning_of_day, range.last.end_of_day)
+            .group(Arel.sql("DATE(started_at)")).count
+
+          pageviews_by_day = property.pageviews
+            .in_range(range.first.beginning_of_day, range.last.end_of_day)
+            .group(Arel.sql("DATE(viewed_at)")).count
+
+          visitors_by_day = property.visits
+            .in_range(range.first.beginning_of_day, range.last.end_of_day)
+            .group(Arel.sql("DATE(started_at)")).distinct.count(:visitor_id)
+        end
 
         dates.map do |date|
           {
