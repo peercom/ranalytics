@@ -58,42 +58,24 @@ module LocalAnalytics
           .sum(:revenue)
       end
 
+      # ── Comparison period metrics ──────────────────────────────────
+
+      def comparison
+        return nil unless comparing?
+
+        @comparison ||= build_comparison
+      end
+
       # Daily breakdown for charts
       def daily_stats
-        @daily_stats ||= begin
-          dates = date_range.to_a
+        @daily_stats ||= build_daily_stats(date_range)
+      end
 
-          visits_by_day = property.visits
-            .in_range(date_range.first.beginning_of_day, date_range.last.end_of_day)
-            .group(Arel.sql("DATE(started_at)"))
-            .count
+      # Previous-period daily stats for chart overlay
+      def comparison_daily_stats
+        return nil unless comparing?
 
-          pageviews_by_day = if use_aggregates?
-            property.daily_page_aggregates
-              .in_range(date_range.first, date_range.last)
-              .group(:date)
-              .sum(:pageviews_count)
-          else
-            property.pageviews
-              .in_range(date_range.first.beginning_of_day, date_range.last.end_of_day)
-              .group(Arel.sql("DATE(viewed_at)"))
-              .count
-          end
-
-          visitors_by_day = property.visits
-            .in_range(date_range.first.beginning_of_day, date_range.last.end_of_day)
-            .group(Arel.sql("DATE(started_at)"))
-            .distinct.count(:visitor_id)
-
-          dates.map do |date|
-            {
-              date: date,
-              visits: visits_by_day[date] || 0,
-              pageviews: pageviews_by_day[date] || 0,
-              visitors: visitors_by_day[date] || 0
-            }
-          end
-        end
+        @comparison_daily_stats ||= build_daily_stats(comparison_range)
       end
 
       # Top pages for dashboard widget
@@ -127,6 +109,89 @@ module LocalAnalytics
       end
 
       private
+
+      def build_comparison
+        cr = comparison_range
+        prev_pageviews = if use_aggregates_for_comparison?
+          property.daily_page_aggregates.in_range(cr.first, cr.last).sum(:pageviews_count)
+        else
+          property.pageviews.in_range(cr.first.beginning_of_day, cr.last.end_of_day).count
+        end
+
+        prev_visits = property.visits.in_range(cr.first.beginning_of_day, cr.last.end_of_day).count
+        prev_visitors = property.visits.in_range(cr.first.beginning_of_day, cr.last.end_of_day).distinct.count(:visitor_id)
+
+        prev_bounced = prev_visits > 0 ? property.visits.in_range(cr.first.beginning_of_day, cr.last.end_of_day).bounced.count : 0
+        prev_bounce_rate = prev_visits > 0 ? (prev_bounced.to_f / prev_visits * 100).round(1) : 0.0
+
+        prev_avg_duration = begin
+          avg = property.visits
+            .in_range(cr.first.beginning_of_day, cr.last.end_of_day)
+            .where.not(ended_at: nil)
+            .average(Arel.sql("EXTRACT(EPOCH FROM (ended_at - started_at))"))
+          (avg || 0).to_f.round(0)
+        end
+
+        prev_pages_per_visit = prev_visits > 0 ? (prev_pageviews.to_f / prev_visits).round(1) : 0.0
+        prev_conversions = property.conversions.in_range(cr.first.beginning_of_day, cr.last.end_of_day).count
+        prev_revenue = property.conversions.in_range(cr.first.beginning_of_day, cr.last.end_of_day).sum(:revenue)
+
+        {
+          visitors:         prev_visitors,
+          visits:           prev_visits,
+          pageviews:        prev_pageviews,
+          bounce_rate:      prev_bounce_rate,
+          avg_duration:     prev_avg_duration,
+          pages_per_visit:  prev_pages_per_visit,
+          conversions:      prev_conversions,
+          revenue:          prev_revenue,
+          # Deltas (percentage change)
+          visitors_delta:        pct_change(total_unique_visitors, prev_visitors),
+          visits_delta:          pct_change(total_visits, prev_visits),
+          pageviews_delta:       pct_change(total_pageviews, prev_pageviews),
+          bounce_rate_delta:     pct_change(bounce_rate, prev_bounce_rate),
+          avg_duration_delta:    pct_change(avg_visit_duration, prev_avg_duration),
+          pages_per_visit_delta: pct_change(avg_pages_per_visit, prev_pages_per_visit),
+          conversions_delta:     pct_change(total_conversions, prev_conversions),
+          revenue_delta:         pct_change(total_revenue, prev_revenue)
+        }
+      end
+
+      def build_daily_stats(range)
+        dates = range.to_a
+
+        visits_by_day = property.visits
+          .in_range(range.first.beginning_of_day, range.last.end_of_day)
+          .group(Arel.sql("DATE(started_at)"))
+          .count
+
+        past = range.last < Date.current
+        pageviews_by_day = if past
+          property.daily_page_aggregates
+            .in_range(range.first, range.last)
+            .group(:date)
+            .sum(:pageviews_count)
+        else
+          property.pageviews
+            .in_range(range.first.beginning_of_day, range.last.end_of_day)
+            .group(Arel.sql("DATE(viewed_at)"))
+            .count
+        end
+
+        visitors_by_day = property.visits
+          .in_range(range.first.beginning_of_day, range.last.end_of_day)
+          .group(Arel.sql("DATE(started_at)"))
+          .distinct.count(:visitor_id)
+
+        dates.map do |date|
+          {
+            date: date,
+            visits: visits_by_day[date] || 0,
+            pageviews: pageviews_by_day[date] || 0,
+            visitors: visitors_by_day[date] || 0
+          }
+        end
+      end
 
       def csv_headers
         %w[date visits pageviews visitors]

@@ -1,0 +1,11 @@
+<%# Renders a delta badge showing percentage change.
+    Pass: delta (number or nil), invert (true for metrics where lower is better, e.g. bounce rate) %>
+<% if defined?(delta) && delta.present? %>
+  <% positive = invert ? delta < 0 : delta > 0 %>
+  <% neutral = delta == 0 %>
+  <% arrow = delta > 0 ? "&#9650;" : (delta < 0 ? "&#9660;" : "&#8212;") %>
+  <% color = neutral ? "var(--text-muted)" : (positive ? "var(--success)" : "var(--danger)") %>
+  <span class="la-delta" style="color:<%= color %>; font-size:12px; font-weight:600;">
+    <%= arrow.html_safe %> <%= delta.abs %>%
+  </span>
+<% end %>

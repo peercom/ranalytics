@@ -37,6 +37,17 @@ module LocalAnalytics
         end
       end
 
+      # Returns { referrer_host => previous_visits } for comparison column
+      def comparison_by_host
+        return {} unless comparing?
+
+        @comparison_by_host ||= property.visits
+          .in_range(comparison_range.first.beginning_of_day, comparison_range.last.end_of_day)
+          .where.not(referrer_host: [nil, ""])
+          .group(:referrer_host)
+          .count
+      end
+
       def by_medium
         property.visits
           .in_range(date_range.first.beginning_of_day, date_range.last.end_of_day)

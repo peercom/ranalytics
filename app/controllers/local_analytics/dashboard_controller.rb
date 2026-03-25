@@ -7,14 +7,16 @@ module LocalAnalytics
     def show
       @report = Reports::DashboardReport.new(
         property: current_property,
-        date_range: date_range
+        date_range: date_range,
+        comparison_range: comparison_range
       )
     end
 
     def export
       @report = Reports::DashboardReport.new(
         property: current_property,
-        date_range: date_range
+        date_range: date_range,
+        comparison_range: comparison_range
       )
 
       respond_to do |format|

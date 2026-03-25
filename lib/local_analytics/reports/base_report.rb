@@ -3,12 +3,17 @@
 module LocalAnalytics
   module Reports
     class BaseReport
-      attr_reader :property, :date_range
+      attr_reader :property, :date_range, :comparison_range
 
-      def initialize(property:, date_range: nil, **options)
+      def initialize(property:, date_range: nil, comparison_range: nil, **options)
         @property = property
         @date_range = date_range || (30.days.ago.to_date..Date.current)
+        @comparison_range = comparison_range
         @options = options
+      end
+
+      def comparing?
+        comparison_range.present?
       end
 
       def to_csv
@@ -44,6 +49,18 @@ module LocalAnalytics
       # Fall back to raw tables for today or if aggregates haven't run yet.
       def use_aggregates?
         date_range.last < Date.current
+      end
+
+      def use_aggregates_for_comparison?
+        comparison_range && comparison_range.last < Date.current
+      end
+
+      # Compute percentage change between two values.
+      # Returns nil when previous is zero (avoid division by zero).
+      def pct_change(current, previous)
+        return nil if previous.nil? || previous.zero?
+
+        ((current.to_f - previous.to_f) / previous.to_f * 100).round(1)
       end
     end
   end

@@ -8,6 +8,7 @@ module LocalAnalytics
       @report = Reports::ReferrersReport.new(
         property: current_property,
         date_range: date_range,
+        comparison_range: comparison_range,
         page: params[:page] || 1,
         per_page: 50
       )

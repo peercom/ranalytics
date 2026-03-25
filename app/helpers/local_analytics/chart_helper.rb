@@ -14,7 +14,9 @@ module LocalAnalytics
     #     labels: ["Mar 1", "Mar 2", ...],
     #     height: 220
     #   )
-    def la_area_chart(series:, labels: [], height: 220, width: nil)
+    # @param dashed [Array<Boolean>] per-series flag; true renders that series as a dashed line
+    #   (useful for comparison/previous-period overlay)
+    def la_area_chart(series:, labels: [], height: 220, width: nil, dashed: [])
       return tag.div("No data", class: "la-empty") if series.values.all?(&:empty?)
 
       w = width || "100%"
@@ -54,6 +56,7 @@ module LocalAnalytics
       # Series paths + filled areas
       series_svg = series.each_with_index.map do |(name, values), si|
         color = CHART_COLORS[si % CHART_COLORS.size]
+        is_dashed = dashed[si]
         points = values.each_with_index.map do |v, i|
           x = padding[:left] + i * x_step
           y = padding[:top] + chart_h - (v * y_scale)
@@ -67,12 +70,17 @@ module LocalAnalytics
           " L#{points.last[0]},#{padding[:top] + chart_h}" \
           " L#{points.first[0]},#{padding[:top] + chart_h} Z"
 
-        area = %(<path d="#{area_d}" fill="#{color}" fill-opacity="0.08" stroke="none"/>)
-        line = %(<path d="#{line_d}" fill="none" stroke="#{color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>)
+        dash_attr = is_dashed ? ' stroke-dasharray="6,4"' : ""
+        opacity = is_dashed ? "0.04" : "0.08"
+        stroke_w = is_dashed ? "1.5" : "2"
 
-        # Dots on each point (small, hover-friendly)
+        area = %(<path d="#{area_d}" fill="#{color}" fill-opacity="#{opacity}" stroke="none"/>)
+        line = %(<path d="#{line_d}" fill="none" stroke="#{color}" stroke-width="#{stroke_w}" stroke-linejoin="round" stroke-linecap="round"#{dash_attr}/>)
+
+        # Dots on each point (smaller for dashed/comparison series)
+        dot_r = is_dashed ? "2" : "3"
         dots = points.map do |(x, y)|
-          %(<circle cx="#{x}" cy="#{y}" r="3" fill="#{color}" stroke="#fff" stroke-width="1.5"/>)
+          %(<circle cx="#{x}" cy="#{y}" r="#{dot_r}" fill="#{color}" stroke="#fff" stroke-width="1.5"/>)
         end.join
 
         area + line + dots
@@ -81,9 +89,14 @@ module LocalAnalytics
       # Legend
       legend_svg = series.keys.each_with_index.map do |name, i|
         color = CHART_COLORS[i % CHART_COLORS.size]
-        x = padding[:left] + i * 120
-        %(<rect x="#{x}" y="#{view_h - 18}" width="12" height="12" rx="2" fill="#{color}"/>) +
-        %(<text x="#{x + 16}" y="#{view_h - 7}" fill="#495057" font-size="12">#{ERB::Util.html_escape(name)}</text>)
+        is_d = dashed[i]
+        x = padding[:left] + i * 150
+        swatch = if is_d
+          %(<line x1="#{x}" y1="#{view_h - 12}" x2="#{x + 12}" y2="#{view_h - 12}" stroke="#{color}" stroke-width="2" stroke-dasharray="4,3"/>)
+        else
+          %(<rect x="#{x}" y="#{view_h - 18}" width="12" height="12" rx="2" fill="#{color}"/>)
+        end
+        swatch + %(<text x="#{x + 16}" y="#{view_h - 7}" fill="#495057" font-size="12">#{ERB::Util.html_escape(name)}</text>)
       end.join
 
       svg = <<~SVG

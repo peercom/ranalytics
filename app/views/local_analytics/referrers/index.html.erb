@@ -26,6 +26,12 @@
 </div>
 <% end %>
 
+<% if comparing? && @report.comparison_by_host.any? %>
+  <div style="font-size:12px; color:var(--text-muted); margin-bottom:0.75rem;">
+    Comparing vs <strong><%= comparison_range.first %> &ndash; <%= comparison_range.last %></strong>
+  </div>
+<% end %>
+
 <div class="la-panel">
   <h3>All Referrers</h3>
   <table>
@@ -34,6 +40,7 @@
         <th>Source</th>
         <th>Medium</th>
         <th class="num">Visits</th>
+        <% if comparing? %><th class="num" style="color:var(--text-muted)">Prev</th><th class="num">Change</th><% end %>
         <th class="num">Visitors</th>
         <th class="num">Bounces</th>
         <th class="num">Bounce Rate</th>
@@ -44,14 +51,23 @@
         <tr>
           <td><%= row.referrer_host || row.referrer_source %></td>
           <td><%= row.referrer_medium %></td>
-          <td class="num"><%= number_with_delimiter(row.visits) %></td>
+          <% current_v = row.visits.to_i %>
+          <td class="num"><%= number_with_delimiter(current_v) %></td>
+          <% if comparing? %>
+            <% prev_v = @report.comparison_by_host[row.referrer_host] || 0 %>
+            <td class="num" style="color:var(--text-muted)"><%= number_with_delimiter(prev_v) %></td>
+            <td class="num">
+              <% delta = prev_v > 0 ? ((current_v.to_f - prev_v) / prev_v * 100).round(1) : nil %>
+              <%= render "local_analytics/shared/comparison_badge", delta: delta, invert: false %>
+            </td>
+          <% end %>
           <td class="num"><%= number_with_delimiter(row.visitors) %></td>
           <td class="num"><%= number_with_delimiter(row.bounces) %></td>
           <td class="num"><%= row.try(:bounce_rate) %>%</td>
         </tr>
       <% end %>
       <% if @report.rows.empty? %>
-        <tr><td colspan="6" class="la-empty">No referrer data for this period</td></tr>
+        <tr><td colspan="<%= comparing? ? 8 : 6 %>" class="la-empty">No referrer data for this period</td></tr>
       <% end %>
     </tbody>
   </table>

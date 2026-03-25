@@ -11,6 +11,24 @@ module LocalAnalytics
         end
       end
 
+      # Returns a hash of { path => previous_pageviews } for comparison column.
+      # Only computed when comparing.
+      def comparison_by_path
+        return {} unless comparing?
+
+        @comparison_by_path ||= if use_aggregates_for_comparison?
+          property.daily_page_aggregates
+            .in_range(comparison_range.first, comparison_range.last)
+            .group(:path)
+            .sum(:pageviews_count)
+        else
+          property.pageviews
+            .in_range(comparison_range.first.beginning_of_day, comparison_range.last.end_of_day)
+            .group(:path)
+            .count
+        end
+      end
+
       def total_count
         @total_count ||= case report_type
         when "entry"

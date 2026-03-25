@@ -6,56 +6,118 @@
   </div>
 </div>
 
+<% if comparing? && @report.comparison %>
+  <div style="font-size:12px; color:var(--text-muted); margin-bottom:1rem;">
+    Comparing <strong><%= date_range.first %> &ndash; <%= date_range.last %></strong>
+    vs <strong><%= comparison_range.first %> &ndash; <%= comparison_range.last %></strong>
+  </div>
+<% end %>
+
+<% cmp = @report.comparison %>
 <div class="la-cards">
   <div class="la-card">
     <div class="la-card-label">Unique Visitors</div>
-    <div class="la-card-value"><%= number_with_delimiter(@report.total_unique_visitors) %></div>
+    <div class="la-card-value">
+      <%= number_with_delimiter(@report.total_unique_visitors) %>
+      <% if cmp %>
+        <%= render "local_analytics/shared/comparison_badge", delta: cmp[:visitors_delta], invert: false %>
+      <% end %>
+    </div>
     <%= la_sparkline(values: @report.daily_stats.map { |d| d[:visitors] }, color: "#0d6efd") %>
   </div>
   <div class="la-card">
     <div class="la-card-label">Visits</div>
-    <div class="la-card-value"><%= number_with_delimiter(@report.total_visits) %></div>
+    <div class="la-card-value">
+      <%= number_with_delimiter(@report.total_visits) %>
+      <% if cmp %>
+        <%= render "local_analytics/shared/comparison_badge", delta: cmp[:visits_delta], invert: false %>
+      <% end %>
+    </div>
     <%= la_sparkline(values: @report.daily_stats.map { |d| d[:visits] }, color: "#198754") %>
   </div>
   <div class="la-card">
     <div class="la-card-label">Pageviews</div>
-    <div class="la-card-value"><%= number_with_delimiter(@report.total_pageviews) %></div>
+    <div class="la-card-value">
+      <%= number_with_delimiter(@report.total_pageviews) %>
+      <% if cmp %>
+        <%= render "local_analytics/shared/comparison_badge", delta: cmp[:pageviews_delta], invert: false %>
+      <% end %>
+    </div>
     <%= la_sparkline(values: @report.daily_stats.map { |d| d[:pageviews] }, color: "#dc3545") %>
   </div>
   <div class="la-card">
     <div class="la-card-label">Bounce Rate</div>
-    <div class="la-card-value"><%= @report.bounce_rate %>%</div>
+    <div class="la-card-value">
+      <%= @report.bounce_rate %>%
+      <% if cmp %>
+        <%= render "local_analytics/shared/comparison_badge", delta: cmp[:bounce_rate_delta], invert: true %>
+      <% end %>
+    </div>
   </div>
   <div class="la-card">
     <div class="la-card-label">Avg Duration</div>
-    <div class="la-card-value"><%= @report.avg_visit_duration %>s</div>
+    <div class="la-card-value">
+      <%= @report.avg_visit_duration %>s
+      <% if cmp %>
+        <%= render "local_analytics/shared/comparison_badge", delta: cmp[:avg_duration_delta], invert: false %>
+      <% end %>
+    </div>
   </div>
   <div class="la-card">
     <div class="la-card-label">Pages/Visit</div>
-    <div class="la-card-value"><%= @report.avg_pages_per_visit %></div>
+    <div class="la-card-value">
+      <%= @report.avg_pages_per_visit %>
+      <% if cmp %>
+        <%= render "local_analytics/shared/comparison_badge", delta: cmp[:pages_per_visit_delta], invert: false %>
+      <% end %>
+    </div>
   </div>
   <div class="la-card">
     <div class="la-card-label">Conversions</div>
-    <div class="la-card-value"><%= number_with_delimiter(@report.total_conversions) %></div>
+    <div class="la-card-value">
+      <%= number_with_delimiter(@report.total_conversions) %>
+      <% if cmp %>
+        <%= render "local_analytics/shared/comparison_badge", delta: cmp[:conversions_delta], invert: false %>
+      <% end %>
+    </div>
   </div>
   <div class="la-card">
     <div class="la-card-label">Revenue</div>
-    <div class="la-card-value"><%= number_to_currency(@report.total_revenue) %></div>
+    <div class="la-card-value">
+      <%= number_to_currency(@report.total_revenue) %>
+      <% if cmp %>
+        <%= render "local_analytics/shared/comparison_badge", delta: cmp[:revenue_delta], invert: false %>
+      <% end %>
+    </div>
   </div>
 </div>
 
 <%# ── Daily trend area chart ─────────────────────────────────────── %>
 <div class="la-panel">
   <h3>Daily Trend</h3>
-  <%= la_area_chart(
-    series: {
-      "Visitors"  => @report.daily_stats.map { |d| d[:visitors] },
-      "Visits"    => @report.daily_stats.map { |d| d[:visits] },
-      "Pageviews" => @report.daily_stats.map { |d| d[:pageviews] },
-    },
-    labels: @report.daily_stats.map { |d| d[:date].strftime("%-m/%-d") },
-    height: 260
-  ) %>
+  <% if @report.comparison_daily_stats %>
+    <%# When comparing, show current vs previous for visitors only (cleaner chart) %>
+    <% prev_stats = @report.comparison_daily_stats %>
+    <%= la_area_chart(
+      series: {
+        "Visitors (current)"  => @report.daily_stats.map { |d| d[:visitors] },
+        "Visitors (previous)" => prev_stats.map { |d| d[:visitors] },
+      },
+      labels: @report.daily_stats.map { |d| d[:date].strftime("%-m/%-d") },
+      height: 260,
+      dashed: [false, true]
+    ) %>
+  <% else %>
+    <%= la_area_chart(
+      series: {
+        "Visitors"  => @report.daily_stats.map { |d| d[:visitors] },
+        "Visits"    => @report.daily_stats.map { |d| d[:visits] },
+        "Pageviews" => @report.daily_stats.map { |d| d[:pageviews] },
+      },
+      labels: @report.daily_stats.map { |d| d[:date].strftime("%-m/%-d") },
+      height: 260
+    ) %>
+  <% end %>
 
   <details style="margin-top: 0.75rem;">
     <summary style="cursor:pointer; font-size:12px; color:var(--text-muted);">Show table</summary>
@@ -66,15 +128,26 @@
           <th class="num">Visitors</th>
           <th class="num">Visits</th>
           <th class="num">Pageviews</th>
+          <% if @report.comparison_daily_stats %>
+            <th class="num" style="color:var(--text-muted)">Prev Visitors</th>
+            <th class="num" style="color:var(--text-muted)">Prev Visits</th>
+            <th class="num" style="color:var(--text-muted)">Prev Pageviews</th>
+          <% end %>
         </tr>
       </thead>
       <tbody>
-        <% @report.daily_stats.each do |day| %>
+        <% @report.daily_stats.each_with_index do |day, i| %>
           <tr>
             <td><%= day[:date] %></td>
             <td class="num"><%= number_with_delimiter(day[:visitors]) %></td>
             <td class="num"><%= number_with_delimiter(day[:visits]) %></td>
             <td class="num"><%= number_with_delimiter(day[:pageviews]) %></td>
+            <% if @report.comparison_daily_stats %>
+              <% prev = @report.comparison_daily_stats[i] %>
+              <td class="num" style="color:var(--text-muted)"><%= prev ? number_with_delimiter(prev[:visitors]) : "—" %></td>
+              <td class="num" style="color:var(--text-muted)"><%= prev ? number_with_delimiter(prev[:visits]) : "—" %></td>
+              <td class="num" style="color:var(--text-muted)"><%= prev ? number_with_delimiter(prev[:pageviews]) : "—" %></td>
+            <% end %>
           </tr>
         <% end %>
       </tbody>
