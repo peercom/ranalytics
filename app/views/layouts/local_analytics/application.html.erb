@@ -134,6 +134,7 @@
         <%= link_to "Locations", local_analytics.locations_path(property_id: current_property&.id), class: ("active" if controller_name == "locations") %>
 
         <div class="la-nav-section">Admin</div>
+        <%= link_to "Email Reports", local_analytics.report_subscriptions_path(property_id: current_property&.id), class: ("active" if controller_name == "report_subscriptions") %>
         <%= link_to "Properties", local_analytics.properties_path, class: ("active" if controller_name == "properties") %>
       </nav>
     </aside>

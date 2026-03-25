@@ -98,6 +98,10 @@ LocalAnalytics.configure do |config|
   #   user.respond_to?(:admin?) && user.admin?
   # }
 
+  # ── Email Reports ────────────────────────────────────────────────────
+  # From address for scheduled email reports.
+  # config.email_from = "analytics@example.com"
+
   # ── Property Resolution ─────────────────────────────────────────────
   # Auto-detect the property from the request. Useful for multi-site setups.
   # config.default_property_finder = ->(request) {

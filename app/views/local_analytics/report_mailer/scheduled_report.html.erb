@@ -1,0 +1,80 @@
+<div class="header">
+  <h1><%= @title %></h1>
+  <p><%= @period %></p>
+</div>
+
+<div class="body">
+  <% if @subscription.report_type == "dashboard" %>
+    <%# Dashboard summary with key metrics %>
+    <div style="margin-bottom: 1rem;">
+      <div class="metric">
+        <div class="metric-label">Unique Visitors</div>
+        <div class="metric-value"><%= number_with_delimiter(@report.total_unique_visitors) %></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Visits</div>
+        <div class="metric-value"><%= number_with_delimiter(@report.total_visits) %></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Pageviews</div>
+        <div class="metric-value"><%= number_with_delimiter(@report.total_pageviews) %></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Bounce Rate</div>
+        <div class="metric-value"><%= @report.bounce_rate %>%</div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 14px; margin-top: 1.5rem;">Top Pages</h3>
+    <table>
+      <thead><tr><th>Path</th><th class="num">Views</th></tr></thead>
+      <tbody>
+        <% @report.top_pages(limit: 10).each do |page| %>
+          <tr><td><%= page.path %></td><td class="num"><%= page.total %></td></tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <h3 style="font-size: 14px; margin-top: 1.5rem;">Top Referrers</h3>
+    <table>
+      <thead><tr><th>Source</th><th class="num">Visits</th></tr></thead>
+      <tbody>
+        <% @report.top_referrers(limit: 10).each do |host, count| %>
+          <tr><td><%= host %></td><td class="num"><%= count %></td></tr>
+        <% end %>
+        <% if @report.top_referrers.empty? %>
+          <tr><td colspan="2" style="color: #6c757d; text-align: center;">No referrer data</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+
+  <% elsif @subscription.report_type == "goals" %>
+    <h3 style="font-size: 14px;">Goal Conversions</h3>
+    <table>
+      <thead><tr><th>Goal</th><th class="num">Conversions</th><th class="num">Rate</th><th class="num">Revenue</th></tr></thead>
+      <tbody>
+        <% @report.rows.each do |row| %>
+          <tr>
+            <td><%= row.goal.name %></td>
+            <td class="num"><%= row.conversions_count %></td>
+            <td class="num"><%= row.conversion_rate %>%</td>
+            <td class="num"><%= number_to_currency(row.revenue) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+  <% else %>
+    <%# Generic report — show note about CSV attachment %>
+    <p>Your <strong><%= @subscription.report_type.titleize %></strong> report for
+       <strong><%= @property.name %></strong> is attached as a CSV file.</p>
+    <p style="color: #6c757d; font-size: 13px;">
+      Period: <%= @period %>
+    </p>
+  <% end %>
+</div>
+
+<div class="footer">
+  <p>This report was sent by LocalAnalytics for <strong><%= @property.name %></strong>.</p>
+  <p>Subscription: "<%= @subscription.name %>" (<%= @subscription.frequency %>)</p>
+</div>

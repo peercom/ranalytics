@@ -58,6 +58,17 @@ FactoryBot.define do
     match_config { {} }
   end
 
+  factory :report_subscription, class: "LocalAnalytics::ReportSubscription" do
+    property
+    sequence(:name) { |n| "Weekly Dashboard #{n}" }
+    recipients { "test@example.com" }
+    frequency { "weekly" }
+    report_type { "dashboard" }
+    day_of_week { "monday" }
+    hour_of_day { 8 }
+    active { true }
+  end
+
   factory :conversion, class: "LocalAnalytics::Conversion" do
     property
     goal

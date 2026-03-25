@@ -15,6 +15,7 @@ module LocalAnalytics
     has_many :daily_device_aggregates, dependent: :destroy
     has_many :daily_location_aggregates, dependent: :destroy
     has_many :daily_event_aggregates, dependent: :destroy
+    has_many :report_subscriptions, dependent: :destroy
 
     validates :name, presence: true
     validates :key, presence: true, uniqueness: true

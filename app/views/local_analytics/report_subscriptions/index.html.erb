@@ -1,0 +1,57 @@
+<div class="la-header">
+  <h1>Email Report Subscriptions</h1>
+  <% if current_property %>
+    <%= link_to "New Subscription", new_report_subscription_path(property_id: current_property.id),
+        style: "padding: 0.3rem 0.8rem; background: var(--primary); color: #fff; border-radius: 4px; font-size: 13px;" %>
+  <% end %>
+</div>
+
+<div class="la-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Report</th>
+        <th>Frequency</th>
+        <th>Recipients</th>
+        <th>Status</th>
+        <th>Next Send</th>
+        <th>Last Sent</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @subscriptions.each do |sub| %>
+        <tr>
+          <td><%= link_to sub.name, report_subscription_path(sub, property_id: sub.property_id) %></td>
+          <td><%= sub.report_type.titleize %></td>
+          <td><%= sub.frequency.titleize %></td>
+          <td style="font-size:12px;"><%= truncate(sub.recipients, length: 40) %></td>
+          <td>
+            <span class="la-badge <%= sub.active? ? 'active' : 'inactive' %>">
+              <%= sub.active? ? "Active" : "Paused" %>
+            </span>
+          </td>
+          <td style="font-size:12px;"><%= sub.next_send_at&.strftime("%Y-%m-%d %H:%M") || "—" %></td>
+          <td style="font-size:12px;"><%= sub.last_sent_at&.strftime("%Y-%m-%d %H:%M") || "Never" %></td>
+          <td style="white-space: nowrap;">
+            <%= link_to "Edit", edit_report_subscription_path(sub, property_id: sub.property_id) %>
+            &middot;
+            <%= button_to "Send Now", send_now_report_subscription_path(sub, property_id: sub.property_id),
+                method: :post, style: "background:none; border:none; color:var(--primary); cursor:pointer; padding:0; font-size:13px;" %>
+          </td>
+        </tr>
+      <% end %>
+      <% if @subscriptions.empty? %>
+        <tr>
+          <td colspan="8" class="la-empty">
+            No email subscriptions yet.
+            <% if current_property %>
+              <%= link_to "Create one", new_report_subscription_path(property_id: current_property.id) %>.
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

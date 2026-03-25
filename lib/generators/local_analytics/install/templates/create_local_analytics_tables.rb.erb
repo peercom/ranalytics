@@ -216,5 +216,23 @@ class CreateLocalAnalyticsTables < ActiveRecord::Migration<%= migration_version 
     end
     add_index :local_analytics_daily_event_aggregates,
               [:property_id, :date], name: "idx_la_daily_events_prop_date"
+
+    # ── Report Subscriptions (email scheduling) ─────────────────────
+    create_table :local_analytics_report_subscriptions do |t|
+      t.references :property,     null: false, foreign_key: { to_table: :local_analytics_properties }
+      t.string     :name,         null: false
+      t.string     :recipients,   null: false
+      t.string     :frequency,    null: false  # daily, weekly, monthly
+      t.string     :report_type,  null: false  # dashboard, pages, referrers, etc.
+      t.boolean    :active,       null: false, default: true
+      t.string     :day_of_week                # for weekly: monday, tuesday, etc.
+      t.integer    :day_of_month               # for monthly: 1-28
+      t.integer    :hour_of_day,  default: 8   # hour to send (0-23)
+      t.datetime   :next_send_at
+      t.datetime   :last_sent_at
+      t.timestamps
+    end
+    add_index :local_analytics_report_subscriptions,
+              [:active, :next_send_at], name: "idx_la_report_subs_due"
   end
 end

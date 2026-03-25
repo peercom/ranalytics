@@ -1,0 +1,34 @@
+<div class="la-header">
+  <h1><%= @subscription.name %></h1>
+  <div style="display:flex; gap:0.5rem;">
+    <%= link_to "Edit", edit_report_subscription_path(@subscription, property_id: current_property&.id) %>
+    <%= button_to "Send Now", send_now_report_subscription_path(@subscription, property_id: current_property&.id),
+        method: :post, style: "background:var(--primary); color:#fff; border:none; padding:0.3rem 0.8rem; border-radius:4px; cursor:pointer; font-size:13px;" %>
+  </div>
+</div>
+
+<div class="la-panel">
+  <table>
+    <tr><td><strong>Report Type</strong></td><td><%= @subscription.report_type.titleize %></td></tr>
+    <tr><td><strong>Property</strong></td><td><%= @subscription.property.name %></td></tr>
+    <tr><td><strong>Recipients</strong></td><td><%= @subscription.recipients %></td></tr>
+    <tr><td><strong>Frequency</strong></td><td><%= @subscription.frequency.titleize %></td></tr>
+    <% if @subscription.frequency == "weekly" %>
+      <tr><td><strong>Day of Week</strong></td><td><%= @subscription.day_of_week&.titleize %></td></tr>
+    <% end %>
+    <% if @subscription.frequency == "monthly" %>
+      <tr><td><strong>Day of Month</strong></td><td><%= @subscription.day_of_month %></td></tr>
+    <% end %>
+    <tr><td><strong>Send Hour</strong></td><td><%= @subscription.hour_of_day %>:00 (<%= @subscription.property.timezone %>)</td></tr>
+    <tr><td><strong>Status</strong></td><td><span class="la-badge <%= @subscription.active? ? 'active' : 'inactive' %>"><%= @subscription.active? ? "Active" : "Paused" %></span></td></tr>
+    <tr><td><strong>Next Send</strong></td><td><%= @subscription.next_send_at&.strftime("%Y-%m-%d %H:%M %Z") || "—" %></td></tr>
+    <tr><td><strong>Last Sent</strong></td><td><%= @subscription.last_sent_at&.strftime("%Y-%m-%d %H:%M %Z") || "Never" %></td></tr>
+    <tr><td><strong>Created</strong></td><td><%= @subscription.created_at.strftime("%Y-%m-%d %H:%M") %></td></tr>
+  </table>
+</div>
+
+<div style="margin-top: 2rem;">
+  <%= button_to "Delete Subscription", report_subscription_path(@subscription, property_id: current_property&.id), method: :delete,
+    data: { turbo_confirm: "Delete this email subscription?" },
+    style: "background: var(--danger); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;" %>
+</div>

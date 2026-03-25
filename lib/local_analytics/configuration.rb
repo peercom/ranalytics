@@ -39,6 +39,9 @@ module LocalAnalytics
     # ── Tracker ─────────────────────────────────────────────────────
     attr_accessor :tracker_endpoint_path
 
+    # ── Email reports ─────────────────────────────────────────────
+    attr_accessor :email_from
+
     # ── Queue name for ActiveJob ────────────────────────────────────
     attr_accessor :job_queue
 
@@ -70,6 +73,7 @@ module LocalAnalytics
       @exclude_user            = ->(_user) { false }
       @default_property_finder = nil
       @tracker_endpoint_path   = "/t"
+      @email_from              = "analytics@example.com"
       @job_queue               = :default
     end
 

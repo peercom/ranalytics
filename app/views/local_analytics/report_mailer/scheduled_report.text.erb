@@ -1,0 +1,21 @@
+<%= @title %>
+<%= @period %>
+<%= "=" * 60 %>
+
+<% if @subscription.report_type == "dashboard" %>
+Unique Visitors: <%= @report.total_unique_visitors %>
+Visits: <%= @report.total_visits %>
+Pageviews: <%= @report.total_pageviews %>
+Bounce Rate: <%= @report.bounce_rate %>%
+Avg Duration: <%= @report.avg_visit_duration %>s
+Pages/Visit: <%= @report.avg_pages_per_visit %>
+Conversions: <%= @report.total_conversions %>
+
+<% else %>
+Your <%= @subscription.report_type.titleize %> report is attached as a CSV file.
+Period: <%= @period %>
+
+<% end %>
+---
+Sent by LocalAnalytics for <%= @property.name %>
+Subscription: "<%= @subscription.name %>" (<%= @subscription.frequency %>)

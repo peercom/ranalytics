@@ -46,5 +46,9 @@ LocalAnalytics::Engine.routes.draw do
     get :export, on: :collection
   end
 
+  resources :report_subscriptions do
+    post :send_now, on: :member
+  end
+
   resources :properties
 end

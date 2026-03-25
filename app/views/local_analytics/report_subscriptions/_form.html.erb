@@ -1,0 +1,56 @@
+<div class="la-panel la-form">
+  <%= form_with(model: subscription, url: subscription.persisted? ?
+    report_subscription_path(subscription, property_id: current_property.id) :
+    report_subscriptions_path(property_id: current_property.id)) do |f| %>
+
+    <% if subscription.errors.any? %>
+      <div class="la-flash alert">
+        <strong><%= pluralize(subscription.errors.count, "error") %>:</strong>
+        <ul><% subscription.errors.full_messages.each do |msg| %><li><%= msg %></li><% end %></ul>
+      </div>
+    <% end %>
+
+    <label>Name</label>
+    <%= f.text_field :name, placeholder: "e.g., Weekly Dashboard for Marketing" %>
+
+    <label>Report Type</label>
+    <%= f.select :report_type, LocalAnalytics::ReportSubscription::REPORT_TYPES.map { |t| [t.titleize, t] } %>
+
+    <label>Recipients (comma-separated emails)</label>
+    <%= f.text_field :recipients, placeholder: "team@example.com, boss@example.com" %>
+
+    <label>Frequency</label>
+    <%= f.select :frequency, LocalAnalytics::ReportSubscription::FREQUENCIES.map { |fr| [fr.titleize, fr] },
+        {}, { onchange: "toggleScheduleFields(this.value)" } %>
+
+    <div id="weekly-fields" style="<%= 'display:none;' unless subscription.frequency == 'weekly' %>">
+      <label>Day of Week</label>
+      <%= f.select :day_of_week, LocalAnalytics::ReportSubscription::DAYS_OF_WEEK.map { |d| [d.titleize, d] },
+          include_blank: "Select..." %>
+    </div>
+
+    <div id="monthly-fields" style="<%= 'display:none;' unless subscription.frequency == 'monthly' %>">
+      <label>Day of Month (1-28)</label>
+      <%= f.number_field :day_of_month, min: 1, max: 28, placeholder: "1" %>
+    </div>
+
+    <label>Send Hour (0-23, in property timezone)</label>
+    <%= f.number_field :hour_of_day, min: 0, max: 23, placeholder: "8" %>
+
+    <label>
+      <%= f.check_box :active %> Active
+    </label>
+
+    <button type="submit" class="la-btn">
+      <%= subscription.persisted? ? "Update" : "Create" %> Subscription
+    </button>
+    <%= link_to "Cancel", report_subscriptions_path(property_id: current_property.id), style: "margin-left: 1rem;" %>
+  <% end %>
+</div>
+
+<script>
+  function toggleScheduleFields(freq) {
+    document.getElementById('weekly-fields').style.display = freq === 'weekly' ? '' : 'none';
+    document.getElementById('monthly-fields').style.display = freq === 'monthly' ? '' : 'none';
+  }
+</script>
