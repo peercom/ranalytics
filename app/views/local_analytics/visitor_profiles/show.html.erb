@@ -1,0 +1,121 @@
+<div class="la-header">
+  <h1>
+    Visitor <code style="font-size:16px; background:#f0f0f0; padding:0.2rem 0.5rem; border-radius:4px;"><%= @visitor.visitor_token.first(12) %>...</code>
+  </h1>
+  <%= link_to "Back to Visitor Log", visitor_log_index_path(property_id: current_property.id) %>
+</div>
+
+<%# ── Summary cards ── %>
+<div class="la-cards">
+  <div class="la-card">
+    <div class="la-card-label">Total Visits</div>
+    <div class="la-card-value"><%= @total_visits %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Pageviews</div>
+    <div class="la-card-value"><%= @total_pageviews %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Events</div>
+    <div class="la-card-value"><%= @total_events %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Conversions</div>
+    <div class="la-card-value"><%= @total_conversions %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Type</div>
+    <div class="la-card-value" style="font-size:16px;"><%= @visitor.returning? ? "Returning" : "New" %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">First Seen</div>
+    <div class="la-card-value" style="font-size:14px;"><%= @first_seen&.strftime("%b %-d, %Y") || "—" %></div>
+  </div>
+  <div class="la-card">
+    <div class="la-card-label">Last Seen</div>
+    <div class="la-card-value" style="font-size:14px;"><%= @last_seen&.strftime("%b %-d, %Y") || "—" %></div>
+  </div>
+</div>
+
+<%# ── Visit history ── %>
+<% @visits.each_with_index do |visit, vi| %>
+  <div class="la-panel" style="margin-bottom:0.75rem;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem;">
+      <div>
+        <strong>Visit #<%= @total_visits - vi %></strong>
+        &mdash; <%= visit.started_at.strftime("%b %-d, %Y %H:%M") %>
+        <% if visit.duration > 0 %>
+          &middot; <%= visit.duration %>s
+        <% end %>
+        <% if visit.bounced? %>
+          <span style="font-size:11px; color:var(--danger); margin-left:0.3rem;">Bounced</span>
+        <% end %>
+      </div>
+      <div style="text-align:right; font-size:12px; color:var(--text-muted);">
+        <%= [visit.browser, visit.os].compact_blank.join(" / ") %>
+        <% if visit.device_type.present? %>&middot; <%= visit.device_type %><% end %>
+        <% if visit.country.present? %>&middot; <%= visit.country %><% end %>
+        <% if visit.referrer_host.present? %>
+          <br>via <strong><%= visit.referrer_host %></strong>
+        <% end %>
+        <% if visit.utm_campaign.present? %>
+          <br>Campaign: <%= visit.utm_campaign %>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Timeline %>
+    <table>
+      <tbody>
+        <% timeline = [] %>
+        <% visit.pageviews.each { |pv| timeline << { time: pv.viewed_at, type: :pageview, item: pv } } %>
+        <% visit.events.each { |ev| timeline << { time: ev.created_at, type: :event, item: ev } } %>
+        <% visit.conversions.each { |cv| timeline << { time: cv.converted_at, type: :conversion, item: cv } } %>
+        <% timeline.sort_by! { |t| t[:time] } %>
+
+        <% timeline.each do |entry| %>
+          <tr>
+            <td style="width:80px; font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums;">
+              <%= entry[:time].strftime("%H:%M:%S") %>
+            </td>
+            <% case entry[:type] %>
+            <% when :pageview %>
+              <td style="width:60px;"><span style="font-size:11px; padding:0.1rem 0.3rem; background:#e8f4fd; color:#0d6efd; border-radius:3px;">PAGE</span></td>
+              <td style="font-size:13px;">
+                <%= entry[:item].path %>
+                <% if entry[:item].title.present? %>
+                  <span style="color:var(--text-muted);"> — <%= truncate(entry[:item].title, length: 60) %></span>
+                <% end %>
+              </td>
+            <% when :event %>
+              <td style="width:60px;"><span style="font-size:11px; padding:0.1rem 0.3rem; background:#fff3cd; color:#664d03; border-radius:3px;">EVENT</span></td>
+              <td style="font-size:13px;">
+                <%= entry[:item].category %> / <%= entry[:item].action %>
+                <% if entry[:item].name.present? %> — <%= entry[:item].name %><% end %>
+                <% if entry[:item].value.present? && entry[:item].value > 0 %>
+                  <span style="color:var(--text-muted);">(value: <%= entry[:item].value %>)</span>
+                <% end %>
+              </td>
+            <% when :conversion %>
+              <td style="width:60px;"><span style="font-size:11px; padding:0.1rem 0.3rem; background:#d1e7dd; color:#0f5132; border-radius:3px;">GOAL</span></td>
+              <td style="font-size:13px;">
+                <%= entry[:item].goal.name %>
+                <% if entry[:item].revenue.present? && entry[:item].revenue > 0 %>
+                  — <strong><%= number_to_currency(entry[:item].revenue) %></strong>
+                <% end %>
+              </td>
+            <% end %>
+          </tr>
+        <% end %>
+
+        <% if timeline.empty? %>
+          <tr><td colspan="3" style="color:var(--text-muted); font-size:13px;">No actions recorded</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>
+
+<% if @visits.empty? %>
+  <div class="la-panel la-empty">No visits recorded for this visitor</div>
+<% end %>

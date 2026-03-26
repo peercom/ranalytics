@@ -46,6 +46,9 @@ LocalAnalytics::Engine.routes.draw do
     get :export, on: :collection
   end
 
+  resources :visitor_log, only: [:index], controller: "visitor_log"
+  resources :visitor_profiles, only: [:show], path: "visitors"
+
   resources :report_subscriptions do
     post :send_now, on: :member
   end

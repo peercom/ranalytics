@@ -1,0 +1,141 @@
+<div class="la-header">
+  <h1>Visitor Log</h1>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <%= render "local_analytics/shared/date_filter" %>
+    <span style="font-size:12px; color:var(--text-muted);"><%= number_with_delimiter(@total_count) %> visits</span>
+  </div>
+</div>
+
+<div class="la-visitor-log">
+  <% @visits.each do |visit| %>
+    <div class="la-panel" style="margin-bottom: 0.75rem;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
+        <%# ── Left: visitor info + timing ── %>
+        <div>
+          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+            <span style="font-size:11px; padding:0.1rem 0.4rem; border-radius:3px; font-weight:600; background:<%= visit.visitor.returning? ? '#e2e3e5' : '#d1e7dd' %>; color:<%= visit.visitor.returning? ? '#41464b' : '#0f5132' %>;">
+              <%= visit.visitor.returning? ? "Returning" : "New" %>
+            </span>
+            <%= link_to visit.visitor.visitor_token.first(8) + "...",
+                visitor_profile_path(visit.visitor, property_id: current_property.id),
+                style: "font-family:monospace; font-size:13px; font-weight:600;" %>
+            <% if visit.bounced? %>
+              <span style="font-size:11px; color:var(--danger);">Bounced</span>
+            <% end %>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted);">
+            <%= visit.started_at.strftime("%b %-d, %Y %H:%M:%S") %>
+            <% if visit.duration > 0 %>
+              &middot; <%= visit.duration %>s
+            <% end %>
+            &middot; <%= visit.pageviews.size %> pages
+            <% if visit.events.size > 0 %>
+              &middot; <%= visit.events.size %> events
+            <% end %>
+            <% if visit.conversions.size > 0 %>
+              &middot; <span style="color:var(--success); font-weight:600;"><%= visit.conversions.size %> conversion<%= "s" if visit.conversions.size > 1 %></span>
+            <% end %>
+          </div>
+        </div>
+
+        <%# ── Right: device + location + referrer ── %>
+        <div style="text-align:right; font-size:12px; color:var(--text-muted);">
+          <div><%= [visit.browser, visit.os].compact_blank.join(" / ") %> &middot; <%= visit.device_type %></div>
+          <% if visit.country.present? %>
+            <div><%= [visit.city, visit.region, visit.country].compact_blank.join(", ") %></div>
+          <% end %>
+          <% if visit.referrer_host.present? %>
+            <div>via <strong><%= visit.referrer_host %></strong>
+              <% if visit.referrer_medium.present? %>
+                (<%= visit.referrer_medium %>)
+              <% end %>
+            </div>
+          <% end %>
+          <% if visit.utm_campaign.present? %>
+            <div>Campaign: <%= visit.utm_campaign %></div>
+          <% end %>
+        </div>
+      </div>
+
+      <%# ── Pageview timeline ── %>
+      <details style="margin-top:0.5rem;">
+        <summary style="cursor:pointer; font-size:12px; color:var(--text-muted);">
+          Session details
+        </summary>
+        <table style="margin-top:0.5rem;">
+          <thead>
+            <tr>
+              <th style="width:80px;">Time</th>
+              <th>Type</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%# Merge pageviews and events into a single timeline %>
+            <% timeline = [] %>
+            <% visit.pageviews.each { |pv| timeline << { time: pv.viewed_at, type: :pageview, item: pv } } %>
+            <% visit.events.each { |ev| timeline << { time: ev.created_at, type: :event, item: ev } } %>
+            <% visit.conversions.each { |cv| timeline << { time: cv.converted_at, type: :conversion, item: cv } } %>
+            <% timeline.sort_by! { |t| t[:time] } %>
+
+            <% timeline.each do |entry| %>
+              <tr>
+                <td style="font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums;">
+                  <%= entry[:time].strftime("%H:%M:%S") %>
+                </td>
+                <% case entry[:type] %>
+                <% when :pageview %>
+                  <td><span style="font-size:11px; padding:0.1rem 0.3rem; background:#e8f4fd; color:#0d6efd; border-radius:3px;">PAGE</span></td>
+                  <td style="font-size:13px;">
+                    <%= entry[:item].path %>
+                    <% if entry[:item].title.present? %>
+                      <span style="color:var(--text-muted);"> — <%= truncate(entry[:item].title, length: 50) %></span>
+                    <% end %>
+                  </td>
+                <% when :event %>
+                  <td><span style="font-size:11px; padding:0.1rem 0.3rem; background:#fff3cd; color:#664d03; border-radius:3px;">EVENT</span></td>
+                  <td style="font-size:13px;">
+                    <%= entry[:item].category %> / <%= entry[:item].action %>
+                    <% if entry[:item].name.present? %>
+                      — <%= entry[:item].name %>
+                    <% end %>
+                    <% if entry[:item].value.present? && entry[:item].value > 0 %>
+                      <span style="color:var(--text-muted);">(value: <%= entry[:item].value %>)</span>
+                    <% end %>
+                  </td>
+                <% when :conversion %>
+                  <td><span style="font-size:11px; padding:0.1rem 0.3rem; background:#d1e7dd; color:#0f5132; border-radius:3px;">GOAL</span></td>
+                  <td style="font-size:13px;">
+                    <%= entry[:item].goal.name %>
+                    <% if entry[:item].revenue.present? && entry[:item].revenue > 0 %>
+                      — <strong><%= number_to_currency(entry[:item].revenue) %></strong>
+                    <% end %>
+                  </td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </details>
+    </div>
+  <% end %>
+
+  <% if @visits.empty? %>
+    <div class="la-panel la-empty">No visits in this date range</div>
+  <% end %>
+</div>
+
+<%# ── Pagination ── %>
+<% if @total_pages > 1 %>
+  <div class="la-pagination">
+    <% if @page > 1 %>
+      <%= link_to "Previous", visitor_log_index_path(property_id: current_property.id, from: date_range.first, to: date_range.last, page: @page - 1) %>
+    <% end %>
+    <span style="font-size:13px; color:var(--text-muted); padding:0.3rem 0.5rem;">
+      Page <%= @page %> of <%= @total_pages %>
+    </span>
+    <% if @page < @total_pages %>
+      <%= link_to "Next", visitor_log_index_path(property_id: current_property.id, from: date_range.first, to: date_range.last, page: @page + 1) %>
+    <% end %>
+  </div>
+<% end %>

@@ -117,6 +117,9 @@
         <%= link_to "Dashboard", local_analytics.dashboard_path(property_id: current_property&.id), class: ("active" if controller_name == "dashboard") %>
         <%= link_to "Real-Time", local_analytics.real_time_path(property_id: current_property&.id), class: ("active" if controller_name == "real_time") %>
 
+        <div class="la-nav-section">Visitors</div>
+        <%= link_to "Visitor Log", local_analytics.visitor_log_index_path(property_id: current_property&.id), class: ("active" if controller_name == "visitor_log") %>
+
         <div class="la-nav-section">Behavior</div>
         <%= link_to "Pages", local_analytics.pages_path(property_id: current_property&.id), class: ("active" if controller_name == "pages") %>
         <%= link_to "Events", local_analytics.events_path(property_id: current_property&.id), class: ("active" if controller_name == "events") %>
